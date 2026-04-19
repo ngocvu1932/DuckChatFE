@@ -2,9 +2,11 @@ import {useMemo, useState} from 'react';
 import {IChat} from '../../../../api/chat/interface';
 import Chat, {EChatType, IChatSelected} from '../../../../components/chat';
 import LoadingSpinner from '../../../../components/loading-spinner';
+import TextInput from '../../../../components/text-input';
+import {IUser} from '../../../../api/auth/interface';
 
 interface ISidebarProps {
-  user: any;
+  user: IUser;
   chatData: IChat[];
   chatSelected?: (chat: IChatSelected) => void;
   isLoading?: boolean;
@@ -12,10 +14,6 @@ interface ISidebarProps {
 
 const Sidebar: React.FC<ISidebarProps> = ({user, chatData, chatSelected, isLoading = true}) => {
   const [selectedChat, setSelectedChat] = useState<string>('');
-
-  const chatbot = useMemo<IChat | undefined>(() => {
-    return chatData.find((chat) => chat.chatName === 'Chat_with_bot_admin_chat_with_vunn');
-  }, [chatData]);
 
   const chatDataUser = useMemo<IChat[]>(() => {
     return chatData.filter((chat) => chat.chatName !== 'Chat_with_bot_admin_chat_with_vunn');
@@ -30,20 +28,9 @@ const Sidebar: React.FC<ISidebarProps> = ({user, chatData, chatSelected, isLoadi
   }
 
   return (
-    <div className="flex flex-col w-full rounded-md">
-      <Chat
-        user={user}
-        isChoose={chatbot?._id === selectedChat ? true : false}
-        key={'chat-bot'}
-        type={EChatType.BOT}
-        chat={chatbot}
-        onSelected={(chat: IChatSelected) => {
-          chatSelected && chatSelected(chat);
-          setSelectedChat(chat.chatId);
-        }}
-      />
-
-      <div>==========</div>
+    <div className="flex flex-col w-full rounded-md mx-2">
+      {/* searchbar */}
+      <TextInput placeholder="Tìm kiếm" className="mt-2" rounded="lg" />
 
       {chatDataUser.map((chat) => {
         return (

@@ -14,8 +14,14 @@ import {
 } from '@fortawesome/free-solid-svg-icons';
 import TextInput from '../../../../components/text-input';
 import Message from '../../../../components/message';
-import {useSelector} from 'react-redux';
+import {useDispatch, useSelector} from 'react-redux';
 import socket from '../../../../socket/socket';
+import {ETypeMessage} from '../../../../types/enum';
+import chatAPIs from '../../../../api/chat';
+import {IMessage, IRequestCreateMessgae} from '../../../../api/chat/interface';
+import {RootState} from '../../../../redux/store';
+import {updateLastMessage} from '../../../../redux/slices/chatSlice';
+import {addMessage, setMessages, updateMessage} from '../../../../redux/slices/messageSlice';
 
 interface IContentProps {
   selectedChat: IChatSelected | undefined;
@@ -23,21 +29,16 @@ interface IContentProps {
   setShowDetailChat?: (isShow: boolean) => void;
 }
 
-export interface IMessage {
-  chatId: string;
-  senderId: string;
-  type: string;
-  content: string;
-  isSeen: string[];
-  mediaUrl: string;
-  createdAt: string;
-}
-
 const Content: React.FC<IContentProps> = ({selectedChat, isShowDetailChat, setShowDetailChat}) => {
-  const user = useSelector((state: any) => state.user.user);
+  const user = useSelector((state: RootState) => state.user.user);
+  const listChat = useSelector((state: RootState) => state.chat.chat);
+  const messageByChat = useSelector((state: RootState) => state.message.messagesByChatId);
+  const dispatch = useDispatch();
   const [messages, setMessage] = useState<IMessage[]>([]);
   const [messageInput, setMessageInput] = useState<string>('');
   const messagesEndRef = useRef<HTMLDivElement>(null);
+
+  console.log('mssg', messageByChat);
 
   useEffect(() => {
     if (selectedChat?.type === EChatType.BOT) {
@@ -55,39 +56,95 @@ const Content: React.FC<IContentProps> = ({selectedChat, isShowDetailChat, setSh
     };
   }, [selectedChat]);
 
+  // lấy danh sách tin nhắn
   useEffect(() => {
-    // Nhận tin nhắn từ server
-    socket.on('receiveMessage', (msg: any) => {
-      console.log('msg', msg);
-      setMessage((prevMessages) => [...prevMessages, msg.message]);
-    });
-
-    return () => {
-      socket.off('receiveMessage'); // Cleanup tránh lỗi memory leak
-    };
-  }, []);
+    getMessages();
+  }, [selectedChat?.chatId]);
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({behavior: 'smooth'});
   }, [messages]);
 
-  const handleSendMessage = (type: string) => {
-    if (messageInput.trim() === '' && type === 'text') {
+  const handleSendMessage = async (type: ETypeMessage) => {
+    if (messageInput.trim() === '' && type === ETypeMessage.Text) {
       return;
     }
 
+    // id tin nhắn tạm
+    const tempId = crypto.randomUUID();
+
     const newMessage: IMessage = {
+      messageId: tempId,
       chatId: selectedChat?.chatId ?? '',
-      senderId: user._id ?? '',
+      senderId: user?._id ?? '',
+      receiverId: selectedChat?.chatUserId ?? '',
       type: 'text',
-      content: type === 'emoji' ? '👍' : messageInput,
+      content: type === ETypeMessage.Emoji ? '👍' : messageInput,
       isSeen: [],
       mediaUrl: '',
       createdAt: new Date().toISOString(),
+      status: 'sending', // trạng thái tin nhắn mới tạo
     };
-    socket.emit('sendMessage', {groupId: selectedChat?.chatId, message: newMessage}); // Gửi tin nhắn lên server
-    setMessage((prevMessages) => [...prevMessages, newMessage]);
+
+    dispatch(addMessage(newMessage));
+
+    socket.emit('sendMessage', newMessage, (res: IMessage) => {
+      console.log('res Send:', res);
+
+      dispatch(
+        updateMessage({
+          chatId: newMessage.chatId,
+          messageId: tempId,
+          newMessage: res,
+        }),
+      );
+    }); // Gửi tin nhắn lên server
+
     setMessageInput('');
+
+    //update last mess cho list chat
+    dispatch(
+      updateLastMessage({
+        chatId: selectedChat?.chatId ?? '',
+        message: newMessage,
+      }),
+    );
+
+    // // gửi tin nhắn về service
+    // await createMessage({
+    //   chatId: newMessage.chatId,
+    //   senderId: newMessage.senderId,
+    //   type: newMessage.type,
+    //   content: newMessage.content,
+    //   isSeen: [],
+    //   mediaUrl: newMessage.mediaUrl,
+    // });
+
+    // fallback nếu server không trả ACK
+    // setTimeout(() => {
+    //   dispatch(markFailed({chatId, messageId: tempId}));
+    // }, 5000);
+  };
+
+  const createMessage = async (message: IRequestCreateMessgae) => {
+    try {
+      const res = await chatAPIs.createMessage(message);
+      console.log('ress', res);
+    } catch (error) {
+      console.log(error);
+    }
+  };
+
+  const getMessages = async () => {
+    try {
+      const res = await chatAPIs.getMessages(selectedChat?.chatId ?? '');
+      if (res.success == true) {
+        // setMessage(res.data);
+        dispatch(setMessages({chatId: selectedChat?.chatId ?? '', messages: res.data}));
+      }
+    } catch (error) {
+      console.log(error);
+    }
   };
 
   if (!selectedChat) {
@@ -138,11 +195,11 @@ const Content: React.FC<IContentProps> = ({selectedChat, isShowDetailChat, setSh
         </div>
 
         <div className="flex flex-1 min-h-0 flex-col  overflow-y-auto">
-          {messages.length <= 0 ? (
+          {messageByChat[selectedChat?.chatId ?? '']?.length <= 0 ? (
             <div className="flex w-full h-full items-center justify-center">Chưa có tin nhắn</div>
           ) : (
             <>
-              {messages.map((message, index) => (
+              {messageByChat[selectedChat?.chatId ?? '']?.map((message, index) => (
                 <div key={index} className="flex w-full">
                   <Message user={user} message={message} />
                 </div>
@@ -170,19 +227,22 @@ const Content: React.FC<IContentProps> = ({selectedChat, isShowDetailChat, setSh
             <TextInput
               onKeyDown={(e) => {
                 if (e.key === 'Enter') {
-                  handleSendMessage('text');
+                  handleSendMessage(ETypeMessage.Text);
                 }
               }}
               value={messageInput}
               changeText={(text) => setMessageInput(text)}
-              placeholder="Aa"
+              placeholder="Nhập nội dung tin nhắn..."
               className="w-full"
               rounded="full"
               suffix={<FontAwesomeIcon icon={faFaceKissWinkHeart} color="black" />}
             />
           </div>
 
-          <div className="flex pl-5 pr-2 text-[#1E88E5] cursor-pointer" onClick={() => handleSendMessage('emoji')}>
+          <div
+            className="flex pl-5 pr-2 text-[#1E88E5] cursor-pointer"
+            onClick={() => handleSendMessage(ETypeMessage.Emoji)}
+          >
             <FontAwesomeIcon icon={faThumbsUp} size="lg" />
           </div>
         </div>

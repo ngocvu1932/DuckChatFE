@@ -1,15 +1,18 @@
-import {useSelector} from 'react-redux';
+import {useDispatch, useSelector} from 'react-redux';
 import HeaderComp from './component/header';
 import {useEffect, useState} from 'react';
 import chatAPIs from '../../api/chat';
-import {IChat} from '../../api/chat/interface';
 import Sidebar from './component/sidebar';
 import Content from './component/content';
 import {IChatSelected} from '../../components/chat';
+import {setChat} from '../../redux/slices/chatSlice';
+import {RootState} from '../../redux/store';
+import LoginPage from '../login';
 
 const HomePage = () => {
-  const user = useSelector((state: any) => state.user.user);
-  const [listChat, setListChat] = useState<IChat[]>();
+  const user = useSelector((state: RootState) => state.user.user);
+  const listChat = useSelector((state: RootState) => state.chat.chat);
+  const dispatch = useDispatch();
   const [loading, setLoading] = useState({chat: true});
   const [selectedChat, setSelectedChat] = useState<IChatSelected | undefined>();
   const [isShowDetailChat, setIsShowDetailChat] = useState(false);
@@ -22,14 +25,19 @@ const HomePage = () => {
     setLoading((prev) => ({...prev, chat: true}));
     try {
       const res = await chatAPIs.getChats();
-      if (res.statusCode === 201) {
-        setListChat(res.data);
+
+      if (res.success == true) {
+        dispatch(setChat(res.data));
         setLoading((prev) => ({...prev, chat: false}));
       }
     } catch (error) {
       console.error('Error:', error);
     }
   };
+
+  if (!user) {
+    return <LoginPage />;
+  }
 
   return (
     <div className="flex w-screen h-screen flex-col p-1 bg-white">

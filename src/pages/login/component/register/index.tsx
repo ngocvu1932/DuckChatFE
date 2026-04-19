@@ -41,13 +41,17 @@ const RegisterComp: React.FC<IRegisterCompProps> = ({setActivedTabKey}) => {
         password: userRegister.password,
       };
       const res = await authAPIs.register(body);
-      if (res.statusCode === 200 || res.statusCode === 201) {
+      if (res.success == true) {
         setShowModal(true);
-      } else if (res.statusCode === 401) {
-        toastNotify(t('sys_notify_register_exist'), EToastNotifyType.ERROR);
       } else {
-        toastNotify(t('sys_notify_register_username_gmail_exist'), EToastNotifyType.ERROR);
+        toastNotify(res.message, EToastNotifyType.ERROR);
       }
+
+      // else if (res.statusCode === 401) {
+      //   toastNotify(t('sys_notify_register_exist'), EToastNotifyType.ERROR);
+      // } else {
+      //   toastNotify(t('sys_notify_register_username_gmail_exist'), EToastNotifyType.ERROR);
+      // }
     } catch (error) {
     } finally {
       setIsLoading((prev) => ({...prev, register: false}));
@@ -113,15 +117,15 @@ const RegisterComp: React.FC<IRegisterCompProps> = ({setActivedTabKey}) => {
       };
       const res = await authAPIs.verifyEmail(body);
 
-      if (res.statusCode === 201) {
+      if (res.success == true) {
         setShowModal(false);
         setActivedTabKey && setActivedTabKey('1');
         setUserRegister({username: '', email: '', password: '', repassword: ''});
         toastNotify(t('sys_notify_verify_success'), EToastNotifyType.SUCCESS);
-      } else if (res.statusCode === 402) {
-        toastNotify(t('sys_notify_verify_code_invalid'), EToastNotifyType.ERROR);
       } else {
-        toastNotify(t('sys_notify_verify_error'), EToastNotifyType.ERROR);
+        toastNotify(res.message, EToastNotifyType.ERROR);
+        // } else {
+        //   toastNotify(t('sys_notify_verify_error'), EToastNotifyType.ERROR);
       }
     } catch (error) {
       toastNotify(t('sys_notify_verify_error'), EToastNotifyType.ERROR);
@@ -144,8 +148,8 @@ const RegisterComp: React.FC<IRegisterCompProps> = ({setActivedTabKey}) => {
             placeholder={t('sys_login_username')}
             className=""
             changeText={(text) => {
-              setUserRegister({...userRegister, username: text}),
-                setIsError((prev) => ({...prev, username: {error: false, textError: ''}}));
+              (setUserRegister({...userRegister, username: text}),
+                setIsError((prev) => ({...prev, username: {error: false, textError: ''}})));
             }}
           />
           <span className="text-red-500 italic max-w-[330px]">
@@ -159,8 +163,8 @@ const RegisterComp: React.FC<IRegisterCompProps> = ({setActivedTabKey}) => {
             placeholder={t('sys_login_email')}
             className=""
             changeText={(text) => {
-              setUserRegister({...userRegister, email: text}),
-                setIsError((prev) => ({...prev, email: {error: false, textError: ''}}));
+              (setUserRegister({...userRegister, email: text}),
+                setIsError((prev) => ({...prev, email: {error: false, textError: ''}})));
             }}
           />
           <span className="text-red-500 italic">{isError.email.error && `(*) ${isError.email.textError}`}</span>
@@ -173,8 +177,8 @@ const RegisterComp: React.FC<IRegisterCompProps> = ({setActivedTabKey}) => {
             type="password"
             className=""
             changeText={(text) => {
-              setUserRegister({...userRegister, password: text}),
-                setIsError((prev) => ({...prev, password: {error: false, textError: ''}}));
+              (setUserRegister({...userRegister, password: text}),
+                setIsError((prev) => ({...prev, password: {error: false, textError: ''}})));
             }}
           />
           <span className="text-red-500 italic">{isError.password.error && `(*) ${isError.password.textError}`}</span>
@@ -187,8 +191,8 @@ const RegisterComp: React.FC<IRegisterCompProps> = ({setActivedTabKey}) => {
             type="password"
             className=""
             changeText={(text) => {
-              setUserRegister({...userRegister, repassword: text}),
-                setIsError((prev) => ({...prev, repassword: {error: false, textError: ''}}));
+              (setUserRegister({...userRegister, repassword: text}),
+                setIsError((prev) => ({...prev, repassword: {error: false, textError: ''}})));
             }}
           />
           <span className="text-red-500 italic">

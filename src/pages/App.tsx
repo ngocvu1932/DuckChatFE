@@ -28,7 +28,7 @@ const App = () => {
     setLoading(true);
     try {
       const res = await authAPIs.getProfile();
-      if (res.status === 200) {
+      if (res.success == true) {
         dispatch(setUser(res.data));
       }
     } catch (error) {

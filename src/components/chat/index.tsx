@@ -1,5 +1,5 @@
 import React from 'react';
-import {IChat} from '../../api/chat/interface';
+import {IChat, IUserChat} from '../../api/chat/interface';
 import {formatTime} from '../../utils/date';
 import {FontAwesomeIcon} from '@fortawesome/react-fontawesome';
 import {faEllipsis, faThumbtack} from '@fortawesome/free-solid-svg-icons';
@@ -12,6 +12,7 @@ export enum EChatType {
 
 export interface IChatSelected {
   chatId: string;
+  chatUserId: string;
   chatName: string;
   chatUri: string;
   online?: boolean;
@@ -35,20 +36,9 @@ const Chat: React.FC<IChatProps> = ({user, type = EChatType.CHAT, chat, onSelect
     return null;
   }
 
-  const chatName =
-    type === EChatType.BOT ? 'Siêu đẹp trai' : chat.user.find((userChat) => userChat._id !== user._id)?.fullname;
-
-  const online =
-    type === EChatType.BOT
-      ? true
-      : chat.isGroupChat
-      ? false
-      : chat.user.find((userChat) => userChat._id !== user._id)?.online;
-
-  const avatar =
-    chat.isGroupChat || type === EChatType.BOT
-      ? chat.groupImgUri
-      : chat.user.find((userChat) => userChat._id !== user._id)?.avatar;
+  const chatInfo = chat.user.find((userChat: IUserChat) => userChat._id !== user._id);
+  const online = chat.isGroupChat ? false : chat.user.find((userChat) => userChat._id !== user._id)?.online;
+  const avatar = chat.isGroupChat ? chat.groupImgUri : chat.user.find((userChat) => userChat._id !== user._id)?.avatar;
 
   return (
     <div
@@ -58,7 +48,14 @@ const Chat: React.FC<IChatProps> = ({user, type = EChatType.CHAT, chat, onSelect
       onClick={() => {
         onSelected &&
           !isChoose &&
-          onSelected({chatId: chat._id, chatName: chatName ?? '', chatUri: avatar ?? '', online: online, type: type});
+          onSelected({
+            chatId: chat._id,
+            chatUserId: chatInfo?._id ?? '',
+            chatName: chatInfo?.fullname ?? '',
+            chatUri: avatar ?? '',
+            online: online,
+            type: type,
+          });
       }}
     >
       <div className="flex">
@@ -66,8 +63,11 @@ const Chat: React.FC<IChatProps> = ({user, type = EChatType.CHAT, chat, onSelect
       </div>
 
       <div className="flex flex-1 justify-between flex-col ml-2">
-        <div className="line-clamp-1 text-[#333333]">{chatName}</div>
-        <div className="text-xs">{chat.lastMessage.content ? chat.lastMessage.content : 'Chưa có'}</div>
+        <div className="line-clamp-1 text-[#333333]">{chatInfo?.fullname}</div>
+        <div className="text-xs">
+          <span>{chat.lastMessage.sender == user._id ? 'Bạn: ' : ''}</span>
+          {chat.lastMessage.content ? chat.lastMessage.content : 'Chưa có'}
+        </div>
       </div>
 
       <div className="flex flex-col justify-between items-end ">

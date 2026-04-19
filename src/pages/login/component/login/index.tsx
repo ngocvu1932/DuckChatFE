@@ -35,23 +35,13 @@ const LoginComp = () => {
         return;
       }
       const res = await authAPIs.login(userLogin);
-      if (res.status === 200) {
+
+      if (res.success) {
         dispatch(setUser(res.data));
         Cookies.set('accessToken', res.data.accessToken ?? '');
         Cookies.set('refreshToken', res.data.refreshToken ?? '');
-      } else if (res.status === 207) {
-        toast.warning(t('sys_notify_account_dont_verify'), {
-          position: 'top-right',
-          autoClose: 3000,
-          hideProgressBar: false,
-          closeOnClick: true,
-          pauseOnHover: true,
-          draggable: true,
-          progress: undefined,
-          theme: 'light',
-        });
       } else {
-        toast.error(t('sys_notify_login_fail'), {
+        toast.warning(t(res.message), {
           position: 'top-right',
           autoClose: 3000,
           hideProgressBar: false,
@@ -62,18 +52,30 @@ const LoginComp = () => {
           theme: 'light',
         });
       }
-    } catch (error) {
-      console.error('Login failed:', error);
-      toast.error(t('sys_notify_login_fail'), {
-        position: 'top-right',
-        autoClose: 3000,
-        hideProgressBar: false,
-        closeOnClick: true,
-        pauseOnHover: true,
-        draggable: true,
-        progress: undefined,
-        theme: 'light',
-      });
+      // else {
+      //     toast.error(t('sys_notify_login_fail'), {
+      //       position: 'top-right',
+      //       autoClose: 3000,
+      //       hideProgressBar: false,
+      //       closeOnClick: true,
+      //       pauseOnHover: true,
+      //       draggable: true,
+      //       progress: undefined,
+      //       theme: 'light',
+      //     });
+      //   }
+      // } catch (error) {
+      //   console.error('Login failed:', error);
+      //   toast.error(t('sys_notify_login_fail'), {
+      //     position: 'top-right',
+      //     autoClose: 3000,
+      //     hideProgressBar: false,
+      //     closeOnClick: true,
+      //     pauseOnHover: true,
+      //     draggable: true,
+      //     progress: undefined,
+      //     theme: 'light',
+      //   });
     } finally {
       setIsLoading(false);
     }

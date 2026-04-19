@@ -2,6 +2,15 @@ import React from 'react';
 
 type TRounded = 'none' | 'sm' | 'md' | 'lg' | 'xl' | 'full';
 
+const roundedClassMap: Record<TRounded, string> = {
+  none: 'rounded-none',
+  sm: 'rounded-sm',
+  md: 'rounded-md',
+  lg: 'rounded-lg',
+  xl: 'rounded-xl',
+  full: 'rounded-full',
+};
+
 interface ITextInputProps {
   onKeyDown?: (e: React.KeyboardEvent<HTMLInputElement>) => void;
   prefix?: React.ReactNode;
@@ -29,8 +38,10 @@ const TextInput: React.FC<ITextInputProps> = ({
   title,
   rounded = 'none',
 }) => {
+  const roundedClass = roundedClassMap[rounded];
+
   return (
-    <span title={title} className={`${className} flex items-center rounded-${rounded} relative`}>
+    <span title={title} className={`${className} flex items-center ${roundedClass} relative`}>
       {prefix && (
         <span className="absolute left-3 flex items-center h-full text-gray-500 pointer-events-none">{prefix}</span>
       )}
@@ -44,7 +55,7 @@ const TextInput: React.FC<ITextInputProps> = ({
         placeholder={placeholder}
         className={`${prefix ? 'pl-9' : ''} ${
           suffix ? 'pr-9' : ''
-        } w-full h-full px-3 py-2 border border-slate-300 rounded-${rounded} hover:border-blue-500 focus:outline-none focus:ring-blue-500`}
+        } w-full h-full px-3 py-2 border border-slate-300 ${roundedClass} hover:border-blue-500 focus:outline-none focus:ring-blue-500`}
       />
       {suffix && <span className="absolute right-3 flex items-center h-full text-gray-500">{suffix}</span>}
     </span>

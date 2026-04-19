@@ -4,14 +4,12 @@ export interface ILoginRequest {
 }
 
 export interface ILoginResponse {
-  statusCode: number;
-  status: number;
+  success: boolean;
   message: string;
-  data: User;
+  data: IUser;
 }
 export interface ILogoutResponse {
-  statusCode: number;
-  status: number;
+  success: boolean;
   message: string;
 }
 
@@ -22,10 +20,9 @@ export interface IRegisterRequest {
 }
 
 export interface IRegisterResponse {
-  statusCode: number;
-  status: number;
+  success: boolean;
   message: string;
-  data: User;
+  data: IUser;
 }
 
 export interface IVerifyEmailRequest {
@@ -34,7 +31,7 @@ export interface IVerifyEmailRequest {
   verifyCode: string;
 }
 
-export interface User {
+export interface IUser {
   _id: string;
   phone: string;
   username: string;
