@@ -8,6 +8,7 @@ export interface IMessageResponse {
   success: boolean;
   message: string;
   data: IMessage[];
+  nextCursor: string;
 }
 
 export type TMessageStatus = 'sending' | 'sent' | 'failed';

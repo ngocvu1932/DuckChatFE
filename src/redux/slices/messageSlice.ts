@@ -29,7 +29,24 @@ const messageSlice = createSlice({
         state.messagesByChatId[msg.chatId] = [];
       }
 
-      state.messagesByChatId[msg.chatId].push(msg);
+      state.messagesByChatId[msg.chatId].unshift(msg);
+    },
+
+    addMessages: (state, action: PayloadAction<{chatId: string; messages: IMessage[]}>) => {
+      const {chatId, messages} = action.payload;
+
+      if (!state.messagesByChatId[chatId]) {
+        state.messagesByChatId[chatId] = [];
+      }
+
+      const existing = state.messagesByChatId[chatId];
+
+      // 🔥 merge + tránh duplicate
+      const merged = [...existing, ...messages].filter(
+        (msg, index, self) => index === self.findIndex((m) => m._id === msg._id),
+      );
+
+      state.messagesByChatId[chatId] = merged;
     },
 
     updateMessage: (
@@ -74,6 +91,6 @@ const messageSlice = createSlice({
   },
 });
 
-export const {setMessages, addMessage, updateMessage, clearMessages} = messageSlice.actions;
+export const {setMessages, addMessage, addMessages, updateMessage, clearMessages} = messageSlice.actions;
 
 export default messageSlice;

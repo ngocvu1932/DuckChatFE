@@ -21,7 +21,8 @@ import chatAPIs from '../../../../api/chat';
 import {IMessage, IRequestCreateMessgae} from '../../../../api/chat/interface';
 import {RootState} from '../../../../redux/store';
 import {updateLastMessage} from '../../../../redux/slices/chatSlice';
-import {addMessage, setMessages, updateMessage} from '../../../../redux/slices/messageSlice';
+import {addMessage, addMessages, setMessages, updateMessage} from '../../../../redux/slices/messageSlice';
+import InfiniteScroll from 'react-infinite-scroll-component';
 
 interface IContentProps {
   selectedChat: IChatSelected | undefined;
@@ -34,36 +35,37 @@ const Content: React.FC<IContentProps> = ({selectedChat, isShowDetailChat, setSh
   const listChat = useSelector((state: RootState) => state.chat.chat);
   const messageByChat = useSelector((state: RootState) => state.message.messagesByChatId);
   const dispatch = useDispatch();
-  const [messages, setMessage] = useState<IMessage[]>([]);
   const [messageInput, setMessageInput] = useState<string>('');
   const messagesEndRef = useRef<HTMLDivElement>(null);
-
-  console.log('mssg', messageByChat);
+  const scrollRef = useRef<HTMLDivElement>(null);
+  const [nextCursor, setNextCursor] = useState<string | null>(null);
+  const [hasMore, setHasMore] = useState(true);
+  // const [loading, setLoading] = useState(false);
+  const messages = messageByChat[selectedChat?.chatId ?? ''] ?? [];
 
   useEffect(() => {
     if (selectedChat?.type === EChatType.BOT) {
       setShowDetailChat && setShowDetailChat(false);
     }
-
-    setMessage([]);
-  }, [selectedChat]);
-
-  useEffect(() => {
-    socket.emit('joinGroup', selectedChat?.chatId);
-
-    return () => {
-      socket.off('joinGroup');
-    };
   }, [selectedChat]);
 
   // lấy danh sách tin nhắn
   useEffect(() => {
-    getMessages();
+    if ((selectedChat?.chatId ?? '') != '') {
+      getMessages();
+    }
   }, [selectedChat?.chatId]);
 
+  const scrollToBottom = () => {
+    const el = scrollRef.current;
+    if (!el) return;
+
+    el.scrollTop = el.scrollHeight;
+  };
+
   useEffect(() => {
-    messagesEndRef.current?.scrollIntoView({behavior: 'smooth'});
-  }, [messages]);
+    scrollToBottom();
+  }, [messages.length]);
 
   const handleSendMessage = async (type: ETypeMessage) => {
     if (messageInput.trim() === '' && type === ETypeMessage.Text) {
@@ -89,8 +91,6 @@ const Content: React.FC<IContentProps> = ({selectedChat, isShowDetailChat, setSh
     dispatch(addMessage(newMessage));
 
     socket.emit('sendMessage', newMessage, (res: IMessage) => {
-      console.log('res Send:', res);
-
       dispatch(
         updateMessage({
           chatId: newMessage.chatId,
@@ -110,40 +110,48 @@ const Content: React.FC<IContentProps> = ({selectedChat, isShowDetailChat, setSh
       }),
     );
 
-    // // gửi tin nhắn về service
-    // await createMessage({
-    //   chatId: newMessage.chatId,
-    //   senderId: newMessage.senderId,
-    //   type: newMessage.type,
-    //   content: newMessage.content,
-    //   isSeen: [],
-    //   mediaUrl: newMessage.mediaUrl,
-    // });
-
     // fallback nếu server không trả ACK
     // setTimeout(() => {
     //   dispatch(markFailed({chatId, messageId: tempId}));
     // }, 5000);
   };
 
-  const createMessage = async (message: IRequestCreateMessgae) => {
+  const getMessages = async (cursor?: string) => {
+    // if (loading) return;
+    if (!hasMore && cursor) return console.log('ở đây');
     try {
-      const res = await chatAPIs.createMessage(message);
-      console.log('ress', res);
-    } catch (error) {
-      console.log(error);
-    }
-  };
+      // setLoading(true);
 
-  const getMessages = async () => {
-    try {
-      const res = await chatAPIs.getMessages(selectedChat?.chatId ?? '');
-      if (res.success == true) {
-        // setMessage(res.data);
-        dispatch(setMessages({chatId: selectedChat?.chatId ?? '', messages: res.data}));
+      const res = await chatAPIs.getMessages(selectedChat?.chatId ?? '', 20, cursor);
+
+      if (res.success) {
+        const newMessages = res.data;
+
+        if (!cursor) {
+          //load lần đầu → replace
+          dispatch(
+            setMessages({
+              chatId: selectedChat?.chatId ?? '',
+              messages: newMessages,
+            }),
+          );
+        } else {
+          //load thêm → append
+          dispatch(
+            addMessages({
+              chatId: selectedChat?.chatId ?? '',
+              messages: newMessages,
+            }),
+          );
+        }
+
+        setNextCursor(res.nextCursor);
+        setHasMore(!!res.nextCursor);
       }
     } catch (error) {
       console.log(error);
+    } finally {
+      // setLoading(false);
     }
   };
 
@@ -194,19 +202,29 @@ const Content: React.FC<IContentProps> = ({selectedChat, isShowDetailChat, setSh
           </div>
         </div>
 
-        <div className="flex flex-1 min-h-0 flex-col  overflow-y-auto">
-          {messageByChat[selectedChat?.chatId ?? '']?.length <= 0 ? (
-            <div className="flex w-full h-full items-center justify-center">Chưa có tin nhắn</div>
+        <div id="scrollableDiv" ref={scrollRef} className="min-h-0 overflow-y-auto flex flex-1 flex-col-reverse">
+          {messages.length === 0 ? (
+            //render riêng ngoài InfiniteScroll
+            <div className="flex flex-1 items-center justify-center text-gray-400">Chưa có tin nhắn</div>
           ) : (
-            <>
-              {messageByChat[selectedChat?.chatId ?? '']?.map((message, index) => (
-                <div key={index} className="flex w-full">
-                  <Message user={user} message={message} />
-                </div>
-              ))}
-
-              <div ref={messagesEndRef} />
-            </>
+            <InfiniteScroll
+              dataLength={messages.length}
+              next={() => getMessages(nextCursor ?? '')}
+              hasMore={hasMore}
+              inverse={true}
+              loader={<h4>Loading...</h4>}
+              scrollableTarget="scrollableDiv"
+              className="flex flex-col-reverse"
+            >
+              <>
+                {messages.map((message, index) => (
+                  <div key={index} className="flex w-full">
+                    <Message user={user} message={message} />
+                  </div>
+                ))}
+                <div ref={messagesEndRef} />
+              </>
+            </InfiniteScroll>
           )}
         </div>
 

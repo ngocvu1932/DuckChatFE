@@ -12,8 +12,10 @@ class Chat {
     return axiosInstance.post('/api/chat/create-message', body);
   }
 
-  getMessages(chatId: string): Promise<IMessageResponse> {
-    return axiosInstance.get(`/api/chat/get-messages?chatId=${chatId}`);
+  getMessages(chatId: string, limit: number, cursor?: string): Promise<IMessageResponse> {
+    return axiosInstance.get(
+      `/api/chat/get-messages?chatId=${chatId}&limit=${limit}${cursor ? `&cursor=${cursor}` : ''}`,
+    );
   }
 }
 
