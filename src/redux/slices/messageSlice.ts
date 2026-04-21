@@ -1,5 +1,5 @@
 import {createSlice, PayloadAction} from '@reduxjs/toolkit';
-import {IMessage} from '../../api/chat/interface';
+import {IMessage} from '../../api/message/interface';
 
 type ChatState = {
   messagesByChatId: {
@@ -73,6 +73,41 @@ const messageSlice = createSlice({
       }
     },
 
+    updateReactMessage: (
+      state,
+      action: PayloadAction<{
+        chatId: string;
+        messageId: string;
+        react: string;
+        userId: string;
+      }>,
+    ) => {
+      const {chatId, messageId, react, userId} = action.payload;
+
+      const messages = state.messagesByChatId[chatId];
+      if (!messages) return console.log('không có chat');
+      const message = messages.find((m) => m._id === messageId);
+      if (!message) return console.log('không có mess');
+      if (!message.react) {
+        message.react = [];
+      }
+
+      // tìm đúng record (react + user)
+      const reactItem = message.react.find((r) => r.react === react && r.user.includes(userId));
+
+      if (reactItem) {
+        // đã tồn tại → tăng count
+        reactItem.count += 1;
+      } else {
+        // 🔥 chưa có → tạo mới
+        message.react.push({
+          react,
+          user: [userId], // hoặc user: userId nếu bạn đổi schema
+          count: 1,
+        });
+      }
+    },
+
     markFailed: (state, action: PayloadAction<{chatId: string; messageId: string}>) => {
       const {chatId, messageId} = action.payload;
 
@@ -91,6 +126,7 @@ const messageSlice = createSlice({
   },
 });
 
-export const {setMessages, addMessage, addMessages, updateMessage, clearMessages} = messageSlice.actions;
+export const {setMessages, addMessage, updateReactMessage, addMessages, updateMessage, clearMessages} =
+  messageSlice.actions;
 
 export default messageSlice;

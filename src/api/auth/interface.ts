@@ -45,3 +45,12 @@ export interface IUser {
   accessToken?: string;
   refreshToken?: string;
 }
+
+export interface IRequestGetUsersByIds {
+  userIds: string[];
+}
+
+export interface IResponseGetUsersByIds {
+  success: boolean;
+  data: IUser[];
+}

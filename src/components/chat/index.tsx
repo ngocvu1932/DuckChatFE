@@ -64,7 +64,7 @@ const Chat: React.FC<IChatProps> = ({user, type = EChatType.CHAT, chat, onSelect
 
       <div className="flex flex-1 justify-between flex-col ml-2">
         <div className="line-clamp-1 text-[#333333]">{chatInfo?.fullname}</div>
-        <div className="text-xs">
+        <div className="text-xs line-clamp-2">
           <span>{chat.lastMessage.sender == user._id ? 'Bạn: ' : ''}</span>
           {chat.lastMessage.content ? chat.lastMessage.content : 'Chưa có'}
         </div>

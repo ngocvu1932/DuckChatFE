@@ -5,6 +5,8 @@ import {
   ILogoutResponse,
   IRegisterRequest,
   IRegisterResponse,
+  IRequestGetUsersByIds,
+  IResponseGetUsersByIds,
   IVerifyEmailRequest,
 } from './interface';
 
@@ -29,6 +31,10 @@ class Auth {
 
   getProfile(): Promise<ILoginResponse> {
     return axiosInstance.get('/api/auth/get-profile');
+  }
+
+  getUsersByIds(body: IRequestGetUsersByIds): Promise<IResponseGetUsersByIds> {
+    return axiosInstance.post('/api/auth/get-users-by-ids', body);
   }
 }
 

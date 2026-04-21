@@ -4,30 +4,6 @@ export interface IChatResponse {
   data: IChat[];
 }
 
-export interface IMessageResponse {
-  success: boolean;
-  message: string;
-  data: IMessage[];
-  nextCursor: string;
-}
-
-export type TMessageStatus = 'sending' | 'sent' | 'failed';
-
-export interface IMessage {
-  _id?: string;
-  messageId: string;
-  chatId: string;
-  senderId: string;
-  receiverId: string;
-  type: string;
-  content: string;
-  isSeen: string[];
-  mediaUrl: string;
-  createdAt?: string;
-  updatedAt?: string;
-  status?: TMessageStatus; // chỉ dùng cho tin nhắn mới tạo (chưa có _id)
-}
-
 export interface IChat {
   _id: string;
   user: IUserChat[];
@@ -46,15 +22,6 @@ export interface IChat {
     content: string;
     timestamp: string;
   };
-}
-
-export interface IRequestCreateMessgae {
-  chatId: string;
-  senderId: string;
-  type: string;
-  content: string;
-  isSeen: string[];
-  mediaUrl: string;
 }
 
 export interface IUserChat {

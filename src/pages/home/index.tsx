@@ -8,6 +8,10 @@ import {IChatSelected} from '../../components/chat';
 import {setChat} from '../../redux/slices/chatSlice';
 import {RootState} from '../../redux/store';
 import LoginPage from '../login';
+import {IChat} from '../../api/chat/interface';
+import authAPIs from '../../api/auth';
+import {IRequestGetUsersByIds} from '../../api/auth/interface';
+import {addUsers} from '../../redux/slices/usersSlice';
 
 const HomePage = () => {
   const user = useSelector((state: RootState) => state.user.user);
@@ -27,17 +31,40 @@ const HomePage = () => {
       const res = await chatAPIs.getChats();
 
       if (res.success == true) {
-        dispatch(setChat(res.data));
-        setLoading((prev) => ({...prev, chat: false}));
+        const userIds = getOtherUserIds(res.data, user?._id ?? '');
+
+        if (userIds.length > 0) {
+          const body: IRequestGetUsersByIds = {
+            userIds: userIds,
+          };
+          // fetch Users
+          const resUsers = await authAPIs.getUsersByIds(body);
+
+          if (resUsers.success == true) {
+            dispatch(addUsers(resUsers.data));
+
+            dispatch(setChat(res.data));
+            setLoading((prev) => ({...prev, chat: false}));
+          }
+        }
       }
     } catch (error) {
       console.error('Error:', error);
+    } finally {
+      setLoading((prev) => ({...prev, chat: false}));
     }
   };
 
   if (!user) {
     return <LoginPage />;
   }
+
+  const getOtherUserIds = (chats: IChat[], currentUserId: string) => {
+    const result = chats.flatMap((chat) => chat.user.map((u) => u._id).filter((id) => id !== currentUserId));
+
+    // 👉 unique (nên có)
+    return [...new Set(result)];
+  };
 
   return (
     <div className="flex w-screen h-screen flex-col p-1 bg-white">

@@ -1,5 +1,6 @@
 import {createSlice, PayloadAction} from '@reduxjs/toolkit';
-import {IChat, IMessage} from '../../api/chat/interface';
+import {IChat} from '../../api/chat/interface';
+import {IMessage} from '../../api/message/interface';
 
 interface ChatState {
   chat: IChat[];

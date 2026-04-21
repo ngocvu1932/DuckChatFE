@@ -17,12 +17,12 @@ import Message from '../../../../components/message';
 import {useDispatch, useSelector} from 'react-redux';
 import socket from '../../../../socket/socket';
 import {ETypeMessage} from '../../../../types/enum';
-import chatAPIs from '../../../../api/chat';
-import {IMessage, IRequestCreateMessgae} from '../../../../api/chat/interface';
 import {RootState} from '../../../../redux/store';
 import {updateLastMessage} from '../../../../redux/slices/chatSlice';
 import {addMessage, addMessages, setMessages, updateMessage} from '../../../../redux/slices/messageSlice';
 import InfiniteScroll from 'react-infinite-scroll-component';
+import {IMessage} from '../../../../api/message/interface';
+import messageAPIs from '../../../../api/message';
 
 interface IContentProps {
   selectedChat: IChatSelected | undefined;
@@ -32,7 +32,7 @@ interface IContentProps {
 
 const Content: React.FC<IContentProps> = ({selectedChat, isShowDetailChat, setShowDetailChat}) => {
   const user = useSelector((state: RootState) => state.user.user);
-  const listChat = useSelector((state: RootState) => state.chat.chat);
+  // const listChat = useSelector((state: RootState) => state.chat.chat);
   const messageByChat = useSelector((state: RootState) => state.message.messagesByChatId);
   const dispatch = useDispatch();
   const [messageInput, setMessageInput] = useState<string>('');
@@ -42,6 +42,8 @@ const Content: React.FC<IContentProps> = ({selectedChat, isShowDetailChat, setSh
   const [hasMore, setHasMore] = useState(true);
   // const [loading, setLoading] = useState(false);
   const messages = messageByChat[selectedChat?.chatId ?? ''] ?? [];
+
+  // console.log('mess', messages);
 
   useEffect(() => {
     if (selectedChat?.type === EChatType.BOT) {
@@ -122,7 +124,7 @@ const Content: React.FC<IContentProps> = ({selectedChat, isShowDetailChat, setSh
     try {
       // setLoading(true);
 
-      const res = await chatAPIs.getMessages(selectedChat?.chatId ?? '', 20, cursor);
+      const res = await messageAPIs.getMessages(selectedChat?.chatId ?? '', 20, cursor);
 
       if (res.success) {
         const newMessages = res.data;
@@ -155,6 +157,10 @@ const Content: React.FC<IContentProps> = ({selectedChat, isShowDetailChat, setSh
     }
   };
 
+  const handleLoadMoreMessages = async () => {
+    await getMessages(nextCursor ?? '');
+  };
+
   if (!selectedChat) {
     return <div className="flex w-full h-full items-center justify-center">Chưa có tin nhắn nào được chọn</div>;
   }
@@ -168,11 +174,7 @@ const Content: React.FC<IContentProps> = ({selectedChat, isShowDetailChat, setSh
           <div className="flex items-center">
             <Avatar src={selectedChat.chatUri} online size="50" />
             <div className="flex flex-col pl-2">
-              <div className="text-[#1E88E5] font-semibold text-lg">
-                {selectedChat.chatName == 'Chat_with_bot_admin_chat_with_vunn'
-                  ? 'Siêu đẹp trai'
-                  : selectedChat.chatName}
-              </div>
+              <div className="text-[#1E88E5] font-semibold text-lg">{selectedChat.chatName}</div>
               <div className="text-sm opacity-80">Đang hoạt động</div>
             </div>
           </div>
@@ -209,7 +211,7 @@ const Content: React.FC<IContentProps> = ({selectedChat, isShowDetailChat, setSh
           ) : (
             <InfiniteScroll
               dataLength={messages.length}
-              next={() => getMessages(nextCursor ?? '')}
+              next={handleLoadMoreMessages}
               hasMore={hasMore}
               inverse={true}
               loader={<h4>Loading...</h4>}
@@ -217,11 +219,17 @@ const Content: React.FC<IContentProps> = ({selectedChat, isShowDetailChat, setSh
               className="flex flex-col-reverse"
             >
               <>
-                {messages.map((message, index) => (
-                  <div key={index} className="flex w-full">
-                    <Message user={user} message={message} />
-                  </div>
-                ))}
+                {messages.map((message, index) => {
+                  const isLastMessage = index === 0;
+                  const hasReact = message?.react && message.react.length > 0;
+                  const paddingClass = isLastMessage ? 'pb-8' : hasReact ? 'pb-4' : '';
+
+                  return (
+                    <div key={index} className={`flex w-full ${paddingClass}`}>
+                      <Message user={user} message={message} receiverId={selectedChat?.chatUserId ?? ''} />
+                    </div>
+                  );
+                })}
                 <div ref={messagesEndRef} />
               </>
             </InfiniteScroll>
