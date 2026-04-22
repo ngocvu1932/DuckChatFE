@@ -23,6 +23,7 @@ import {addMessage, addMessages, setMessages, updateMessage} from '../../../../r
 import InfiniteScroll from 'react-infinite-scroll-component';
 import {IMessage} from '../../../../api/message/interface';
 import messageAPIs from '../../../../api/message';
+import moment from 'moment';
 
 interface IContentProps {
   selectedChat: IChatSelected | undefined;
@@ -222,10 +223,21 @@ const Content: React.FC<IContentProps> = ({selectedChat, isShowDetailChat, setSh
                   const isLastMessage = index === 0;
                   const hasReact = message?.react && message.react.length > 0;
                   const paddingClass = isLastMessage ? 'pb-8' : hasReact ? 'pb-4' : '';
+                  const nextMessage = messages[index - 1];
+                  const aboveMessage = messages[index + 1];
+                  const showTime = !nextMessage || nextMessage.senderId !== message.senderId;
+                  const showDateTime =
+                    !aboveMessage || !moment(aboveMessage.createdAt).isSame(moment(message.createdAt), 'day');
 
                   return (
                     <div key={index} className={`flex w-full ${paddingClass}`}>
-                      <Message user={user} message={message} receiverId={selectedChat?.chatUserId ?? ''} />
+                      <Message
+                        showTime={showTime}
+                        showDateTime={showDateTime}
+                        user={user}
+                        message={message}
+                        receiverId={selectedChat?.chatUserId ?? ''}
+                      />
                     </div>
                   );
                 })}

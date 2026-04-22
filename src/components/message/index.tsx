@@ -15,11 +15,14 @@ import Avatar from '../avatar';
 import {listReact} from './data';
 import {FontAwesomeIcon} from '@fortawesome/react-fontawesome';
 import {faX} from '@fortawesome/free-solid-svg-icons';
+import {formatMessageDateTime, formatTimeHHMM} from '../../utils/date';
 
 interface IMessageProps {
   message: IMessage;
   user?: IUser;
   receiverId: string;
+  showTime?: boolean;
+  showDateTime?: boolean;
 }
 
 interface IReactUI {
@@ -30,7 +33,7 @@ interface IReactUI {
   react: string;
 }
 
-const Message: React.FC<IMessageProps> = ({message, user, receiverId}) => {
+const Message: React.FC<IMessageProps> = ({message, user, receiverId, showTime = false, showDateTime = false}) => {
   const isSender = message.senderId === (user?._id ?? '');
   const dispatch = useDispatch();
   const usersById = useSelector((state: RootState) => state.users.byId);
@@ -135,57 +138,68 @@ const Message: React.FC<IMessageProps> = ({message, user, receiverId}) => {
   };
 
   return (
-    <div className={`flex pb-1 w-full ${isSender ? 'justify-end pr-2' : 'justify-start pl-2'}`}>
-      <div className="relative flex max-w-[70%]">
-        <div className={`rounded-xl  flex w-full ${isSender ? 'bg-blue-500 text-white' : 'bg-gray-200 text-black'}`}>
-          {/* 🔥 a: message (group riêng) */}
-          <div className="group relative ">
-            <p className="py-1.5 px-3">{message.content}</p>
+    <div className="flex flex-col w-full">
+      {showDateTime && (
+        <div className="flex w-full  items-center justify-center mt-5">
+          {formatMessageDateTime(message?.createdAt ?? '')}
+        </div>
+      )}
+      <div className={`flex pb-1 w-full ${isSender ? 'justify-end pr-2' : 'justify-start pl-2'}`}>
+        <div className="relative flex max-w-[70%]">
+          <div className={`rounded-xl  flex w-full ${isSender ? 'bg-blue-500 text-white' : 'bg-gray-200 text-black'}`}>
+            {/* 🔥 a: message (group riêng) */}
+            <div className="group relative ">
+              <div className={`flex flex-col ${isSender ? 'items-end' : 'items-start'} py-1.5 px-3`}>
+                <p>{message.content}</p>
 
-            {/* Y */}
-            <div className={`absolute -bottom-7 ${isSender ? 'right-0' : 'left-0'} hidden group-hover:flex`}>
-              <div className="flex bg-white gap-2.5 shadow px-2 py-1 rounded-xl z-40">
-                {listReact.map((value) => (
-                  <button key={value.id} onClick={() => reactMessage(value.icon)}>
-                    {value.icon}
+                {showTime && <p className="text-xs italic pt-1">{formatTimeHHMM(message?.createdAt ?? '')}</p>}
+              </div>
+
+              {/* Y */}
+              <div className={`absolute -bottom-7 ${isSender ? 'right-0' : 'left-0'} hidden group-hover:flex`}>
+                <div className="flex bg-white gap-2.5 shadow px-2 py-1 rounded-xl z-40">
+                  {listReact.map((value) => (
+                    <button key={value.id} onClick={() => reactMessage(value.icon)}>
+                      {value.icon}
+                    </button>
+                  ))}
+
+                  <button
+                    className="pl-2 "
+                    onClick={() => {
+                      removeReactMessage();
+                    }}
+                  >
+                    <FontAwesomeIcon icon={faX} color="black" />
                   </button>
-                ))}
+                </div>
+              </div>
+            </div>
 
-                <button
-                  className="pl-2 "
-                  onClick={() => {
-                    removeReactMessage();
-                  }}
+            {/* 🔥 b: react list (group riêng) */}
+            {message?.react && message?.react.length > 0 && (
+              <div className={`absolute -bottom-4 ${isSender ? 'right-0' : 'left-0'} group`}>
+                <div
+                  className={`flex items-center bg-white gap-1 shadow px-1 rounded-xl ${
+                    isSender ? 'flex-row-reverse' : 'flex-row'
+                  }`}
                 >
-                  <FontAwesomeIcon icon={faX} color="black" />
-                </button>
+                  {message.react.map((react, index) => (
+                    <div key={index} className="flex items-center gap-1 text-sm">
+                      {react.react}
+                    </div>
+                  ))}
+                </div>
+
+                {/* Z */}
+                <div
+                  className={`absolute ${isSender ? 'right-0' : 'left-0'} bottom-0 hidden group-hover:block bg-white text-black px-2 py-1 rounded w-max z-50 shadow-md`}
+                >
+                  {renderUserReact()}
+                </div>
               </div>
-            </div>
+            )}
           </div>
-
-          {/* 🔥 b: react list (group riêng) */}
-          {message?.react && message?.react.length > 0 && (
-            <div className={`absolute -bottom-4 ${isSender ? 'right-0' : 'left-0'} group`}>
-              <div
-                className={`flex items-center bg-white gap-1 shadow px-1 rounded-xl ${
-                  isSender ? 'flex-row-reverse' : 'flex-row'
-                }`}
-              >
-                {message.react.map((react, index) => (
-                  <div key={index} className="flex items-center gap-1 text-sm">
-                    {react.react}
-                  </div>
-                ))}
-              </div>
-
-              {/* Z */}
-              <div
-                className={`absolute ${isSender ? 'right-0' : 'left-0'} bottom-0 hidden group-hover:block bg-white text-black px-2 py-1 rounded w-max z-50 shadow-md`}
-              >
-                {renderUserReact()}
-              </div>
-            </div>
-          )}
         </div>
       </div>
     </div>
