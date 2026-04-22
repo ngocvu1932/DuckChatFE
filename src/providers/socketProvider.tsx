@@ -3,7 +3,7 @@ import {useDispatch, useSelector} from 'react-redux';
 import socket from '../socket/socket';
 import {RootState} from '../redux/store';
 import {updateLastMessage} from '../redux/slices/chatSlice';
-import {addMessage, updateReactMessage} from '../redux/slices/messageSlice';
+import {addMessage, updateReactMessage, updateRemoveReactMessage} from '../redux/slices/messageSlice';
 import {IMessage, IResponseReactMessage} from '../api/message/interface';
 
 const SocketProvider = ({children}: {children: React.ReactNode}) => {
@@ -38,14 +38,27 @@ const SocketProvider = ({children}: {children: React.ReactNode}) => {
       );
     };
 
+    const handleReceiveRemoveReactMessage = (data: IResponseReactMessage) => {
+      // cập nhật lại listChat theo react
+      dispatch(
+        updateRemoveReactMessage({
+          chatId: data.chatId,
+          messageId: data.messId,
+          userId: data.userId,
+        }),
+      );
+    };
+
     socket.on('connect', handleConnect);
     socket.on('receiveMessage', handleReceiveMessage);
     socket.on('receiveReactMessage', handleReceiveReactMessage);
+    socket.on('receiveRemoveReactMessage', handleReceiveRemoveReactMessage);
 
     return () => {
       socket.off('connect', handleConnect);
       socket.off('receiveMessage', handleReceiveMessage);
       socket.off('receiveReactMessage', handleReceiveReactMessage);
+      socket.off('receiveRemoveReactMessage', handleReceiveRemoveReactMessage);
 
       socket.disconnect(); // optional
     };

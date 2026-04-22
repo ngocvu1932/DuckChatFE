@@ -1,11 +1,20 @@
 import React, {useMemo} from 'react';
-import {IMessage, IReactMessage, IRequestReactMessage, IResponseReactMessage} from '../../api/message/interface';
+import {
+  IMessage,
+  IReactMessage,
+  IRequestReactMessage,
+  IRequestRemoveReactMessage,
+  IResponseReactMessage,
+} from '../../api/message/interface';
 import {IUser} from '../../api/auth/interface';
 import socket from '../../socket/socket';
 import {useDispatch, useSelector} from 'react-redux';
-import {updateReactMessage} from '../../redux/slices/messageSlice';
+import {updateReactMessage, updateRemoveReactMessage} from '../../redux/slices/messageSlice';
 import {RootState} from '../../redux/store';
 import Avatar from '../avatar';
+import {listReact} from './data';
+import {FontAwesomeIcon} from '@fortawesome/react-fontawesome';
+import {faX} from '@fortawesome/free-solid-svg-icons';
 
 interface IMessageProps {
   message: IMessage;
@@ -43,6 +52,30 @@ const Message: React.FC<IMessageProps> = ({message, user, receiverId}) => {
             chatId: res.chatId,
             messageId: res.messId,
             react: res.react,
+            userId: res.userId,
+          }),
+        );
+      }); // Gửi tin nhắn lên server
+    } catch (error) {
+      console.log('error', error);
+    }
+  };
+
+  const removeReactMessage = async () => {
+    // bắn socket để remove react tin nhắn
+    try {
+      const reactRemove: IRequestRemoveReactMessage = {
+        chatId: message.chatId,
+        messId: message._id ?? '',
+        userId: user?._id ?? '',
+        receiverId: receiverId,
+      };
+
+      socket.emit('removeReactMessage', reactRemove, (res: IResponseReactMessage) => {
+        dispatch(
+          updateRemoveReactMessage({
+            chatId: res.chatId,
+            messageId: res.messId,
             userId: res.userId,
           }),
         );
@@ -112,11 +145,20 @@ const Message: React.FC<IMessageProps> = ({message, user, receiverId}) => {
             {/* Y */}
             <div className={`absolute -bottom-7 ${isSender ? 'right-0' : 'left-0'} hidden group-hover:flex`}>
               <div className="flex bg-white gap-2.5 shadow px-2 py-1 rounded-xl z-40">
-                <button onClick={() => reactMessage('👍')}>👍</button>
-                <button onClick={() => reactMessage('❤️')}>❤️</button>
-                <button onClick={() => reactMessage('😂')}>😂</button>
-                <button onClick={() => reactMessage('😢')}>😢</button>
-                <button onClick={() => reactMessage('🐣')}>🐣</button>
+                {listReact.map((value) => (
+                  <button key={value.id} onClick={() => reactMessage(value.icon)}>
+                    {value.icon}
+                  </button>
+                ))}
+
+                <button
+                  className="pl-2 "
+                  onClick={() => {
+                    removeReactMessage();
+                  }}
+                >
+                  <FontAwesomeIcon icon={faX} color="black" />
+                </button>
               </div>
             </div>
           </div>

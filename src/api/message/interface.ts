@@ -22,6 +22,13 @@ export interface IRequestReactMessage {
   receiverId?: string;
 }
 
+export interface IRequestRemoveReactMessage {
+  chatId: string;
+  messId: string;
+  userId: string;
+  receiverId?: string;
+}
+
 export interface IResponseReactMessage {
   chatId: string;
   messId: string;

@@ -108,6 +108,26 @@ const messageSlice = createSlice({
       }
     },
 
+    updateRemoveReactMessage: (
+      state,
+      action: PayloadAction<{
+        chatId: string;
+        messageId: string;
+        userId: string;
+      }>,
+    ) => {
+      const {chatId, messageId, userId} = action.payload;
+
+      const messages = state.messagesByChatId[chatId];
+      if (!messages) return console.log('không có chat');
+
+      const message = messages.find((m) => m._id === messageId);
+      if (!message) return console.log('không có mess');
+      if (!message.react) return;
+
+      message.react = message.react.filter((r) => !r.user.includes(userId));
+    },
+
     markFailed: (state, action: PayloadAction<{chatId: string; messageId: string}>) => {
       const {chatId, messageId} = action.payload;
 
@@ -126,7 +146,14 @@ const messageSlice = createSlice({
   },
 });
 
-export const {setMessages, addMessage, updateReactMessage, addMessages, updateMessage, clearMessages} =
-  messageSlice.actions;
+export const {
+  setMessages,
+  addMessage,
+  updateReactMessage,
+  updateRemoveReactMessage,
+  addMessages,
+  updateMessage,
+  clearMessages,
+} = messageSlice.actions;
 
 export default messageSlice;

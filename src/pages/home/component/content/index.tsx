@@ -206,7 +206,6 @@ const Content: React.FC<IContentProps> = ({selectedChat, isShowDetailChat, setSh
 
         <div id="scrollableDiv" ref={scrollRef} className="min-h-0 overflow-y-auto flex flex-1 flex-col-reverse">
           {messages.length === 0 ? (
-            //render riêng ngoài InfiniteScroll
             <div className="flex flex-1 items-center justify-center text-gray-400">Chưa có tin nhắn</div>
           ) : (
             <InfiniteScroll
