@@ -8,6 +8,12 @@ export interface ILoginResponse {
   message: string;
   data: IUser;
 }
+
+export interface IGetUserByUsernameResponse {
+  success: boolean;
+  message: string;
+  data: IUser;
+}
 export interface ILogoutResponse {
   success: boolean;
   message: string;

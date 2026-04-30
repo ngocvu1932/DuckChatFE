@@ -4,6 +4,20 @@ export interface IChatResponse {
   data: IChat[];
 }
 
+export interface ICreateChatRequest {
+  user: string[];
+  chatName: string;
+  isSeen: string[];
+  groupImgUri: string;
+}
+
+export interface ICreateChatResponse {
+  success: boolean;
+  isExisting?: boolean;
+  message: string;
+  data: IChat;
+}
+
 export interface IChat {
   _id: string;
   user: IUserChat[];

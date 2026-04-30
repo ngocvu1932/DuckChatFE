@@ -1,5 +1,6 @@
 import axiosInstance from '../axiosConfig';
 import {
+  IGetUserByUsernameResponse,
   ILoginRequest,
   ILoginResponse,
   ILogoutResponse,
@@ -35,6 +36,10 @@ class Auth {
 
   getUsersByIds(body: IRequestGetUsersByIds): Promise<IResponseGetUsersByIds> {
     return axiosInstance.post('/api/auth/get-users-by-ids', body);
+  }
+
+  getUserByUsername(username: string): Promise<IGetUserByUsernameResponse> {
+    return axiosInstance.get(`/api/auth/get-user-by-username/${username}`);
   }
 }
 
