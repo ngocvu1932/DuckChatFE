@@ -9,7 +9,7 @@ class Post {
   }
 
   getPost(limit: number, cursor?: string): Promise<IGetPostResponse> {
-    return axiosInstance.get(`/api/post/get-posts?page=1&limit=${limit}`);
+    return axiosInstance.get(`/api/post/get-posts?page=1&limit=${limit}${cursor ? `&cursor=${cursor}` : ''}`);
   }
 }
 
