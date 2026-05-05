@@ -67,7 +67,7 @@ const HomePage = () => {
   };
 
   return (
-    <div className="flex h-screen w-screen flex-col overflow-hidden bg-slate-100 p-2 text-slate-900 sm:p-3 lg:p-4">
+    <div className="flex h-screen w-screen flex-col overflow-hidden bg-slate-100 p-2 text-slate-900 sm:p-2 lg:p-3">
       <div className="flex h-16 shrink-0 rounded-t-3xl border border-white/70 bg-white/90 shadow-sm shadow-slate-200/70 backdrop-blur">
         <HeaderComp />
       </div>

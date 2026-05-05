@@ -25,6 +25,7 @@ const AddFriendModal: React.FC<IAddFriendModalProps> = ({isOpen, onClose, curren
   const [errorMessage, setErrorMessage] = useState<string>('');
   const [isSearching, setIsSearching] = useState<boolean>(false);
   const [isCreatingChat, setIsCreatingChat] = useState<boolean>(false);
+  const isSearchedCurrentUser = searchedUser?._id === currentUserId;
 
   const resetModalState = () => {
     setSearchValue('');
@@ -200,20 +201,22 @@ const AddFriendModal: React.FC<IAddFriendModalProps> = ({isOpen, onClose, curren
                     {searchedUser.isVerified ? 'Đã xác thực' : 'Chưa xác thực'}
                   </div>
 
-                  <div
-                    className={`flex w-full justify-center rounded-full bg-white py-2 font-medium text-slate-600 shadow-sm ${
-                      isCreatingChat ? 'cursor-not-allowed opacity-70' : 'cursor-pointer'
-                    }`}
-                    onClick={() => {
-                      if (isCreatingChat) {
-                        return;
-                      }
+                  {!isSearchedCurrentUser && (
+                    <div
+                      className={`flex w-full justify-center rounded-full bg-white py-2 font-medium text-slate-600 shadow-sm ${
+                        isCreatingChat ? 'cursor-not-allowed opacity-70' : 'cursor-pointer'
+                      }`}
+                      onClick={() => {
+                        if (isCreatingChat) {
+                          return;
+                        }
 
-                      handleClickMessage(searchedUser);
-                    }}
-                  >
-                    <FontAwesomeIcon icon={faMessage} />
-                  </div>
+                        handleClickMessage(searchedUser);
+                      }}
+                    >
+                      <FontAwesomeIcon icon={faMessage} />
+                    </div>
+                  )}
                 </div>
               </div>
               {searchedUser.address && <p className="mt-3 text-sm text-slate-500">{searchedUser.address}</p>}

@@ -1,11 +1,12 @@
-import {useMemo, useState} from 'react';
+import {useEffect, useMemo, useState} from 'react';
 import {useSelector} from 'react-redux';
 import HeaderComp from '../home/component/header';
 import LoginPage from '../login';
 import {RootState} from '../../redux/store';
 import PostComposer from './component/post-composer';
 import PostCard from './component/post-card';
-import {IComment, IPost, IPostAuthor} from './interface';
+import {IComment, IPost, IPostAuthor} from '../../api/post/interface';
+import postAPIs from '../../api/post';
 
 const sampleImages = [
   'https://images.unsplash.com/photo-1494526585095-c41746248156?auto=format&fit=crop&w=1200&q=80',
@@ -13,73 +14,29 @@ const sampleImages = [
   'https://images.unsplash.com/photo-1517694712202-14dd9538aa97?auto=format&fit=crop&w=1200&q=80',
 ];
 
-const mockPosts: IPost[] = [
-  {
-    _id: 'post-1',
-    user: {
-      _id: 'user-2',
-      fullname: 'Minh Thu',
-      username: 'minhthu',
-      avatar: 'https://i.pravatar.cc/120?img=5',
-    },
-    content:
-      'Hom nay minh muon thu nghiem mot khu news feed rieng trong DuckChat. Neu lam tot, day se la noi chia se bai viet va cap nhat cua moi nguoi.',
-    images: [sampleImages[0]],
-    likeCount: 18,
-    commentCount: 2,
-    isLiked: false,
-    createdAt: new Date().toISOString(),
-    createdLabel: '5 phut truoc',
-    comments: [
-      {
-        _id: 'comment-1',
-        user: {
-          _id: 'user-3',
-          fullname: 'Duck Dev',
-          username: 'duckdev',
-          avatar: 'https://i.pravatar.cc/120?img=13',
-        },
-        content: 'UI nay nhin kha on, tiep tuc di.',
-        createdAt: new Date().toISOString(),
-      },
-      {
-        _id: 'comment-2',
-        user: {
-          _id: 'user-4',
-          fullname: 'Lan Anh',
-          username: 'lananh',
-          avatar: 'https://i.pravatar.cc/120?img=11',
-        },
-        content: 'Mong co them upload anh that som.',
-        createdAt: new Date().toISOString(),
-      },
-    ],
-  },
-  {
-    _id: 'post-2',
-    user: {
-      _id: 'user-5',
-      fullname: 'Hoang Nam',
-      username: 'hoangnam',
-      avatar: 'https://i.pravatar.cc/120?img=15',
-    },
-    content: 'Vua xong layout moi cho khu bai dang. Dang tinh them like va comment theo kieu nhe nhang truoc.',
-    images: [sampleImages[1], sampleImages[2]],
-    likeCount: 9,
-    commentCount: 0,
-    isLiked: true,
-    createdAt: new Date().toISOString(),
-    createdLabel: '23 phut truoc',
-    comments: [],
-  },
-];
-
 const PostPage = () => {
   const user = useSelector((state: RootState) => state.user.user);
-  const [posts, setPosts] = useState<IPost[]>(mockPosts);
+  const [posts, setPosts] = useState<IPost[]>([]);
   const [content, setContent] = useState('');
   const [attachedImages, setAttachedImages] = useState<string[]>([]);
   const [isSubmitting, setIsSubmitting] = useState(false);
+
+  useEffect(() => {
+    // getPosst
+    getPosts();
+  }, []);
+
+  const getPosts = async () => {
+    try {
+      const res = await postAPIs.getPost(20);
+
+      if (res.success) {
+        setPosts(res.data);
+      }
+    } catch (error) {
+      console.log(error);
+    }
+  };
 
   const currentUser = useMemo<IPostAuthor>(
     () => ({
@@ -90,10 +47,6 @@ const PostPage = () => {
     }),
     [user],
   );
-
-  if (!user) {
-    return <LoginPage />;
-  }
 
   const handleAttachImage = () => {
     const nextImage = sampleImages[attachedImages.length % sampleImages.length];
@@ -109,7 +62,7 @@ const PostPage = () => {
     setAttachedImages((prev) => prev.filter((item) => item !== image));
   };
 
-  const handleSubmitPost = () => {
+  const handleSubmitPost = async () => {
     if (!content.trim() && attachedImages.length === 0) {
       return;
     }
@@ -125,9 +78,21 @@ const PostPage = () => {
       commentCount: 0,
       isLiked: false,
       createdAt: new Date().toISOString(),
-      createdLabel: 'Vua xong',
       comments: [],
     };
+
+    const body = {
+      content: content.trim(),
+      images: [],
+      visibility: 'PUBLIC',
+    };
+
+    try {
+      const res = await postAPIs.createPost(body);
+      console.log(res);
+    } catch (error) {
+      console.log(error);
+    }
 
     setTimeout(() => {
       setPosts((prev) => [nextPost, ...prev]);
@@ -178,25 +143,61 @@ const PostPage = () => {
     );
   };
 
+  if (!user) {
+    return <LoginPage />;
+  }
+
   return (
-    <div className="flex h-screen w-screen flex-col bg-[#f4f7fb] p-1">
-      <div className="flex h-[8vh] rounded-t-md border border-[#E0E0E0] bg-white">
+    <div className="flex h-screen w-screen flex-col overflow-hidden bg-slate-100 p-2 text-slate-900 sm:p-2 lg:p-3">
+      <div className="flex h-[8vh] rounded-t-2xl border border-slate-200 bg-white/95 shadow-sm backdrop-blur">
         <HeaderComp />
       </div>
 
-      <div className="flex h-[92vh] rounded-b-md border-x border-b border-[#E0E0E0] bg-[linear-gradient(180deg,#f8fbff_0%,#eef4fb_100%)]">
-        <div className="hidden w-[22%] border-r border-slate-200 bg-white/70 p-5 lg:block">
-          <div className="rounded-3xl bg-white p-5 shadow-sm">
-            <p className="text-sm font-semibold uppercase tracking-[0.2em] text-slate-400">Khong gian</p>
-            <h2 className="mt-3 text-2xl font-semibold text-slate-800">Bang tin DuckChat</h2>
-            <p className="mt-3 text-sm leading-6 text-slate-500">
-              Noi moi nguoi dang bai, chia se cap nhat va giu ket noi ngoai khung chat.
-            </p>
-          </div>
-        </div>
+      <div className="flex h-[92vh] overflow-hidden rounded-b-2xl border-x border-b border-slate-200 bg-[radial-gradient(circle_at_top_left,#dbeafe_0%,transparent_34%),linear-gradient(180deg,#f8fbff_0%,#eef4fb_100%)]">
+        <aside className="hidden w-[23%] min-w-[260px] border-r border-slate-200/80 bg-white/70 p-5 backdrop-blur-xl lg:block">
+          <div className="sticky top-5 space-y-4">
+            <section className="rounded-2xl border border-white/80 bg-white/90 p-5 shadow-sm shadow-slate-200/70">
+              <p className="text-xs font-bold uppercase tracking-[0.22em] text-sky-500">Không gian</p>
+              <h2 className="mt-3 text-2xl font-bold tracking-tight text-slate-900">Bảng tin DuckChat </h2>
+              <p className="mt-3 text-sm leading-6 text-slate-500">
+                Nơi mọi người đăng bài, chia sẻ cập nhật và giữ kết nối ngoài khung chat.
+              </p>
+            </section>
 
-        <div className="h-full flex-1 overflow-y-auto px-4 py-5">
-          <div className="mx-auto flex w-full max-w-3xl flex-col gap-5">
+            <section className="rounded-2xl border border-slate-200/80 bg-white/80 p-4 shadow-sm">
+              <p className="text-sm font-semibold text-slate-800">Tin đang hoạt động</p>
+              <div className="mt-4 space-y-3">
+                <div className="flex items-center justify-between rounded-2xl bg-sky-50 px-3 py-2 text-sm">
+                  <span className="font-medium text-slate-600">Bài đăng</span>
+                  <span className="font-bold text-sky-600">{posts.length}</span>
+                </div>
+                <div className="flex items-center justify-between rounded-2xl bg-emerald-50 px-3 py-2 text-sm">
+                  <span className="font-medium text-slate-600">Ảnh đính kèm</span>
+                  <span className="font-bold text-emerald-600">{attachedImages.length}</span>
+                </div>
+              </div>
+            </section>
+          </div>
+        </aside>
+
+        <main className="h-full flex-1 overflow-y-auto px-3 py-4 sm:px-5 lg:px-7">
+          <div className="mx-auto flex w-full max-w-3xl flex-col gap-5 pb-8">
+            <div className="rounded-2xl border border-white/80 bg-white/75 px-4 py-4 shadow-sm shadow-slate-200/70 backdrop-blur sm:px-5">
+              <p className="text-xs font-bold uppercase tracking-[0.2em] text-indigo-500">Social feed</p>
+              <div className="mt-2 flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
+                <div>
+                  <h1 className="text-2xl font-bold tracking-tight text-slate-950 sm:text-3xl">Cập nhật mới nhất</h1>
+                  <p className="mt-1 text-sm leading-6 text-slate-500">
+                    Chia sẻ ý tưởng, hình ảnh và những khoảnh khắc đang diễn ra trong DuckChat.
+                  </p>
+                </div>
+                <div className="flex w-fit items-center gap-2 rounded-full border border-slate-200 bg-white px-3 py-1.5 text-xs font-semibold text-slate-500 shadow-sm">
+                  <span className="h-2 w-2 rounded-full bg-emerald-400 shadow-[0_0_0_4px_rgba(52,211,153,0.18)]" />
+                  Live preview
+                </div>
+              </div>
+            </div>
+
             <PostComposer
               currentUser={currentUser}
               content={content}
@@ -207,6 +208,13 @@ const PostPage = () => {
               onRemoveImage={handleRemoveImage}
               onSubmit={handleSubmitPost}
             />
+
+            <div className="flex items-center justify-between px-1">
+              <h2 className="text-sm font-bold uppercase tracking-[0.18em] text-slate-400">Bài đăng gần đây</h2>
+              <span className="rounded-full bg-white px-3 py-1 text-xs font-semibold text-slate-500 shadow-sm ring-1 ring-slate-200">
+                {posts.length} bài
+              </span>
+            </div>
 
             {posts.length > 0 ? (
               posts.map((post) => {
@@ -220,24 +228,54 @@ const PostPage = () => {
                 );
               })
             ) : (
-              <div className="rounded-3xl border border-dashed border-slate-300 bg-white p-10 text-center text-slate-500">
-                Chua co bai dang nao. Hay tao bai dau tien.
+              <div className="rounded-2xl border border-dashed border-slate-300 bg-white/80 p-10 text-center shadow-sm">
+                <p className="text-lg font-semibold text-slate-800">Chưa có bài đăng nào</p>
+                <p className="mt-2 text-sm text-slate-500">Hãy tạo bài đầu tiên để khởi động bảng tin.</p>
               </div>
             )}
           </div>
-        </div>
+        </main>
 
-        <div className="hidden w-[24%] border-l border-slate-200 bg-white/70 p-5 xl:block">
-          <div className="rounded-3xl bg-white p-5 shadow-sm">
-            <p className="text-sm font-semibold uppercase tracking-[0.2em] text-slate-400">MVP</p>
-            <ul className="mt-3 space-y-3 text-sm leading-6 text-slate-600">
-              <li>Dang bai bang text</li>
-              <li>Gan anh mau de review UI</li>
-              <li>Like va comment local</li>
-              <li>San sang noi API that o phase tiep theo</li>
-            </ul>
+        <aside className="hidden w-[25%] min-w-[300px] border-l border-slate-200/80 bg-white/70 p-5 backdrop-blur-xl xl:block">
+          <div className="sticky top-5 space-y-4">
+            <section className="rounded-2xl border border-white/80 bg-white/90 p-5 shadow-sm shadow-slate-200/70">
+              <p className="text-xs font-bold uppercase tracking-[0.22em] text-indigo-500">MVP</p>
+              <h3 className="mt-3 text-lg font-bold text-slate-900">San sang ket noi API</h3>
+              <p className="mt-2 text-sm leading-6 text-slate-500">
+                Giao dien dang dung state local de giu luong tao bai, thich va binh luan.
+              </p>
+            </section>
+
+            <section className="rounded-2xl border border-slate-200/80 bg-white/80 p-5 shadow-sm">
+              <p className="text-sm font-bold text-slate-800">Tinh nang hien co</p>
+              <ul className="mt-4 space-y-3 text-sm leading-6 text-slate-600">
+                <li className="flex items-center gap-3">
+                  <span className="h-2 w-2 rounded-full bg-sky-400" />
+                  Dang bai bang text
+                </li>
+                <li className="flex items-center gap-3">
+                  <span className="h-2 w-2 rounded-full bg-emerald-400" />
+                  Gan anh mau de review UI
+                </li>
+                <li className="flex items-center gap-3">
+                  <span className="h-2 w-2 rounded-full bg-rose-400" />
+                  Like va comment local
+                </li>
+                <li className="flex items-center gap-3">
+                  <span className="h-2 w-2 rounded-full bg-indigo-400" />
+                  San sang noi API that o phase tiep theo
+                </li>
+              </ul>
+            </section>
+
+            <section className="overflow-hidden rounded-2xl border border-slate-200/80 bg-slate-950 p-5 text-white shadow-sm">
+              <p className="text-xs font-bold uppercase tracking-[0.22em] text-sky-300">Design tone</p>
+              <p className="mt-3 text-sm leading-6 text-slate-300">
+                Clean SaaS dashboard, nhan nhe bang mau sky, indigo va emerald.
+              </p>
+            </section>
           </div>
-        </div>
+        </aside>
       </div>
     </div>
   );
