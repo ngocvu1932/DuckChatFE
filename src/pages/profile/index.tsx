@@ -28,9 +28,9 @@ const ProfilePage = () => {
   const dispatch = useDispatch();
   const [isEditOpen, setIsEditOpen] = useState(false);
   const [posts, setPosts] = useState<IPost[]>([]);
-  const [nextCursor, setNextCursor] = useState<string | null>(null);
+  // const [nextCursor, setNextCursor] = useState<string | null>(null);
   const [isLoadingPosts, setIsLoadingPosts] = useState(false);
-  const [isLoadingMorePosts, setIsLoadingMorePosts] = useState(false);
+  // const [isLoadingMorePosts, setIsLoadingMorePosts] = useState(false);
   const [postError, setPostError] = useState('');
   const [submittingLikePostIds, setSubmittingLikePostIds] = useState<string[]>([]);
   const [submittingCommentPostIds, setSubmittingCommentPostIds] = useState<string[]>([]);
@@ -47,11 +47,11 @@ const ProfilePage = () => {
     const isLoadMore = Boolean(cursor);
 
     if (isLoadMore) {
-      setIsLoadingMorePosts(true);
+      // setIsLoadingMorePosts(true);
     } else {
       setIsLoadingPosts(true);
       setPosts([]);
-      setNextCursor(null);
+      // setNextCursor(null);
     }
 
     setPostError('');
@@ -61,7 +61,7 @@ const ProfilePage = () => {
 
       if (res.success) {
         setPosts((prev) => (isLoadMore ? [...prev, ...res.data] : res.data));
-        setNextCursor(res.nextCursor ?? null);
+        // setNextCursor(res.nextCursor ?? null);
       } else {
         setPostError(res.message ?? 'Khong the lay danh sach bai dang.');
       }
@@ -70,7 +70,7 @@ const ProfilePage = () => {
       setPostError('Khong the lay danh sach bai dang.');
     } finally {
       setIsLoadingPosts(false);
-      setIsLoadingMorePosts(false);
+      // setIsLoadingMorePosts(false);
     }
   }
 
