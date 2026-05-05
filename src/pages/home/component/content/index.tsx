@@ -156,9 +156,9 @@ const Content: React.FC<IContentProps> = ({selectedChat, isShowDetailChat, setSh
           <div className="mx-auto mb-5 flex h-16 w-16 items-center justify-center rounded-3xl bg-sky-100 text-2xl text-sky-600 shadow-sm">
             <FontAwesomeIcon icon={faThumbsUp} />
           </div>
-          <h2 className="text-xl font-bold text-slate-900">Chon mot cuoc tro chuyen</h2>
+          <h2 className="text-xl font-bold text-slate-900">Chọn một cuộc trò chuyện</h2>
           <p className="mt-2 text-sm leading-6 text-slate-500">
-            Tin nhan, tep dinh kem va thong tin lien he se hien thi tai day.
+            Tin nhắn, tệp đính kèm và thông tin liên hệ sẽ hiển thị tại đây.
           </p>
         </div>
       </div>
@@ -180,7 +180,7 @@ const Content: React.FC<IContentProps> = ({selectedChat, isShowDetailChat, setSh
               <div className="truncate text-base font-bold text-slate-900 sm:text-lg">{selectedChat.chatName}</div>
               <div className="mt-0.5 flex items-center gap-1.5 text-xs font-medium text-emerald-600">
                 <span className="h-2 w-2 rounded-full bg-emerald-500" />
-                Dang hoat dong
+                Đang hoạt động
               </div>
             </div>
           </div>
@@ -214,7 +214,7 @@ const Content: React.FC<IContentProps> = ({selectedChat, isShowDetailChat, setSh
         >
           {messages.length === 0 ? (
             <div className="flex flex-1 items-center justify-center text-sm font-medium text-slate-400">
-              Chua co tin nhan
+              Chưa có tin nhắn
             </div>
           ) : (
             <InfiniteScroll
@@ -260,10 +260,10 @@ const Content: React.FC<IContentProps> = ({selectedChat, isShowDetailChat, setSh
             <button type="button" title="Them" className={actionButtonClass}>
               <FontAwesomeIcon icon={faPlus} />
             </button>
-            <button type="button" title="Anh" className={actionButtonClass}>
+            <button type="button" title="Ảnh" className={actionButtonClass}>
               <FontAwesomeIcon icon={faImage} />
             </button>
-            <button type="button" title="Qua tang" className={`${actionButtonClass} hidden sm:flex`}>
+            <button type="button" title="Quà tặng" className={`${actionButtonClass} hidden sm:flex`}>
               <FontAwesomeIcon icon={faGift} />
             </button>
           </div>
@@ -276,7 +276,7 @@ const Content: React.FC<IContentProps> = ({selectedChat, isShowDetailChat, setSh
             }}
             value={messageInput}
             changeText={(text) => setMessageInput(text)}
-            placeholder="Nhap noi dung tin nhan..."
+            placeholder="Nhập nội dung tin nhắn..."
             className="h-12 min-w-0 flex-1"
             rounded="full"
             suffix={<FontAwesomeIcon icon={faFaceKissWinkHeart} />}
@@ -284,7 +284,7 @@ const Content: React.FC<IContentProps> = ({selectedChat, isShowDetailChat, setSh
 
           <button
             type="button"
-            title={canSendText ? 'Gui tin nhan' : 'Gui cam xuc'}
+            title={canSendText ? 'Gửi tin nhắn' : 'Gửi cảm xúc'}
             className={`flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl text-white shadow-lg transition-all duration-200 hover:-translate-y-0.5 focus:outline-none focus-visible:ring-4 focus-visible:ring-sky-100 active:scale-95 ${
               canSendText
                 ? 'bg-sky-500 shadow-sky-200 hover:bg-sky-600'
@@ -302,16 +302,16 @@ const Content: React.FC<IContentProps> = ({selectedChat, isShowDetailChat, setSh
           <div className="flex flex-col items-center text-center">
             <Avatar src={selectedChat.chatUri} online={selectedChat.online} size="55" />
             <h3 className="mt-3 max-w-full truncate text-lg font-bold text-slate-900">{selectedChat.chatName}</h3>
-            <p className="mt-1 text-sm font-medium text-emerald-600">Dang hoat dong</p>
+            <p className="mt-1 text-sm font-medium text-emerald-600">Đang hoạt động</p>
           </div>
 
           <div className="mt-6 space-y-3">
             <button className="flex w-full items-center justify-between rounded-2xl border border-slate-200 bg-white px-4 py-3 text-left text-sm font-semibold text-slate-700 shadow-sm transition hover:-translate-y-0.5 hover:border-sky-200 hover:text-sky-700">
-              Thong tin cuoc tro chuyen
+              Thông tin cuộc trò chuyện
               <FontAwesomeIcon icon={faCircleInfo} className="text-sky-500" />
             </button>
             <button className="flex w-full items-center justify-between rounded-2xl border border-slate-200 bg-white px-4 py-3 text-left text-sm font-semibold text-slate-700 shadow-sm transition hover:-translate-y-0.5 hover:border-sky-200 hover:text-sky-700">
-              Anh va tep da chia se
+              Ảnh và tệp đã chia sẻ
               <FontAwesomeIcon icon={faImage} className="text-sky-500" />
             </button>
           </div>

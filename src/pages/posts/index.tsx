@@ -5,7 +5,7 @@ import LoginPage from '../login';
 import {RootState} from '../../redux/store';
 import PostComposer from './component/post-composer';
 import PostCard from './component/post-card';
-import {IComment, IPost, IPostAuthor} from '../../api/post/interface';
+import {IPost, IPostAuthor} from '../../api/post/interface';
 import postAPIs from '../../api/post';
 
 const sampleImages = [
@@ -20,6 +20,8 @@ const PostPage = () => {
   const [content, setContent] = useState('');
   const [attachedImages, setAttachedImages] = useState<string[]>([]);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [submittingLikePostIds, setSubmittingLikePostIds] = useState<string[]>([]);
+  const [submittingCommentPostIds, setSubmittingCommentPostIds] = useState<string[]>([]);
 
   useEffect(() => {
     // getPosst
@@ -69,40 +71,40 @@ const PostPage = () => {
 
     setIsSubmitting(true);
 
-    const nextPost: IPost = {
-      _id: `post-${Date.now()}`,
-      user: currentUser,
-      content: content.trim(),
-      images: attachedImages,
-      likeCount: 0,
-      commentCount: 0,
-      isLiked: false,
-      createdAt: new Date().toISOString(),
-      comments: [],
-    };
-
     const body = {
       content: content.trim(),
-      images: [],
+      images: attachedImages,
       visibility: 'PUBLIC',
     };
 
     try {
       const res = await postAPIs.createPost(body);
-      console.log(res);
+
+      if (res.success) {
+        setPosts((prev) => [res.data, ...prev]);
+        setContent('');
+        setAttachedImages([]);
+      }
     } catch (error) {
       console.log(error);
-    }
-
-    setTimeout(() => {
-      setPosts((prev) => [nextPost, ...prev]);
-      setContent('');
-      setAttachedImages([]);
+    } finally {
       setIsSubmitting(false);
-    }, 300);
+    }
   };
 
-  const handleToggleLike = (postId: string) => {
+  const handleToggleLike = async (postId: string) => {
+    if (submittingLikePostIds.includes(postId)) {
+      return;
+    }
+
+    const currentPost = posts.find((post) => post._id === postId);
+
+    if (!currentPost) {
+      return;
+    }
+
+    setSubmittingLikePostIds((prev) => [...prev, postId]);
+
     setPosts((prev) =>
       prev.map((post) => {
         if (post._id !== postId) {
@@ -118,29 +120,47 @@ const PostPage = () => {
         };
       }),
     );
+
+    try {
+      const res = await postAPIs.likePost({postId});
+
+      if (res.success) {
+        setPosts((prev) => prev.map((post) => (post._id === postId ? res.data : post)));
+      } else {
+        setPosts((prev) => prev.map((post) => (post._id === postId ? currentPost : post)));
+      }
+    } catch (error) {
+      console.log(error);
+      setPosts((prev) => prev.map((post) => (post._id === postId ? currentPost : post)));
+    } finally {
+      setSubmittingLikePostIds((prev) => prev.filter((id) => id !== postId));
+    }
   };
 
-  const handleAddComment = (postId: string, commentText: string) => {
-    const nextComment: IComment = {
-      _id: `comment-${Date.now()}`,
-      user: currentUser,
-      content: commentText.trim(),
-      createdAt: new Date().toISOString(),
-    };
+  const handleAddComment = async (postId: string, commentText: string) => {
+    const trimmedComment = commentText.trim();
 
-    setPosts((prev) =>
-      prev.map((post) => {
-        if (post._id !== postId) {
-          return post;
-        }
+    if (!trimmedComment || submittingCommentPostIds.includes(postId)) {
+      return;
+    }
 
-        return {
-          ...post,
-          commentCount: post.commentCount + 1,
-          comments: [...post.comments, nextComment],
-        };
-      }),
-    );
+    setSubmittingCommentPostIds((prev) => [...prev, postId]);
+
+    try {
+      const res = await postAPIs.commentPost({
+        postId,
+        content: trimmedComment,
+        images: [],
+      });
+
+      if (res.success) {
+        setPosts((prev) => prev.map((post) => (post._id === postId ? res.data : post)));
+      }
+    } catch (error) {
+      console.log(error);
+    } finally {
+      setSubmittingCommentPostIds((prev) => prev.filter((id) => id !== postId));
+    }
   };
 
   if (!user) {
@@ -149,7 +169,7 @@ const PostPage = () => {
 
   return (
     <div className="flex h-screen w-screen flex-col overflow-hidden bg-slate-100 p-2 text-slate-900 sm:p-2 lg:p-3">
-      <div className="flex h-[8vh] rounded-t-2xl border border-slate-200 bg-white/95 shadow-sm backdrop-blur">
+      <div className="flex h-16 shrink-0 rounded-t-3xl border border-white/70 bg-white/90 shadow-sm shadow-slate-200/70 backdrop-blur">
         <HeaderComp />
       </div>
 
@@ -222,6 +242,8 @@ const PostPage = () => {
                   <PostCard
                     key={post._id}
                     post={post}
+                    isLikeSubmitting={submittingLikePostIds.includes(post._id)}
+                    isCommentSubmitting={submittingCommentPostIds.includes(post._id)}
                     onToggleLike={handleToggleLike}
                     onAddComment={handleAddComment}
                   />

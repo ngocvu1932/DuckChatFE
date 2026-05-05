@@ -2,7 +2,13 @@ export interface IGetPostResponse {
   success: boolean;
   message: string;
   data: IPost[];
-  nextCursor: string;
+  pagination?: {
+    page: number;
+    limit: number;
+    total: number;
+    hasMore: boolean;
+  };
+  nextCursor?: string;
 }
 
 export interface IPostAuthor {
@@ -16,6 +22,7 @@ export interface IComment {
   _id: string;
   user: IPostAuthor;
   content: string;
+  images?: string[];
   createdAt: string;
 }
 
@@ -35,4 +42,20 @@ export interface IBodyCreatePost {
   content: string;
   images: string[];
   visibility: string;
+}
+
+export interface IBodyLikePost {
+  postId: string;
+}
+
+export interface IBodyCommentPost {
+  postId: string;
+  content: string;
+  images?: string[];
+}
+
+export interface IPostResponse {
+  success: boolean;
+  message: string;
+  data: IPost;
 }

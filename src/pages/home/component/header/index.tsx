@@ -19,9 +19,9 @@ const HeaderComp = () => {
   const navigate = useNavigate();
 
   const navItems = [
-    {label: 'Chat', path: '/', icon: faComments},
-    {label: 'Bai dang', path: '/posts', icon: faNewspaper},
-    {label: 'Profile', path: '/profile', icon: faUser},
+    {label: 'Tin nhắn', path: '/', icon: faComments},
+    {label: 'Bài đăng', path: '/posts', icon: faNewspaper},
+    {label: 'Hồ sơ', path: '/profile', icon: faUser},
   ];
 
   const handleLogout = async () => {

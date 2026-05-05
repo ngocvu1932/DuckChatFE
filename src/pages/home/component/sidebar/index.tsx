@@ -37,8 +37,8 @@ const Sidebar: React.FC<ISidebarProps> = ({user, chatData, chatSelected, isLoadi
         <div className="mb-4 flex h-14 w-14 items-center justify-center rounded-2xl bg-sky-100 text-sky-600 shadow-sm">
           <FontAwesomeIcon icon={faUserPlus} />
         </div>
-        <h2 className="text-base font-semibold text-slate-800">Chua co tin nhan nao</h2>
-        <p className="mt-1 text-sm leading-6 text-slate-500">Them ban be de bat dau cuoc tro chuyen dau tien.</p>
+        <h2 className="text-base font-semibold text-slate-800">Chưa có tin nhắn nào</h2>
+        <p className="mt-1 text-sm leading-6 text-slate-500">Thêm bạn bè để bắt đầu cuộc trò chuyện đầu tiên.</p>
       </div>
     );
   }
@@ -53,7 +53,7 @@ const Sidebar: React.FC<ISidebarProps> = ({user, chatData, chatSelected, isLoadi
           </div>
           <button
             type="button"
-            title="Them ban"
+            title="Thêm bạn"
             className="flex h-10 w-10 items-center justify-center rounded-2xl bg-sky-500 text-white shadow-lg shadow-sky-200 transition-all duration-200 hover:-translate-y-0.5 hover:bg-sky-600 focus:outline-none focus-visible:ring-4 focus-visible:ring-sky-100 active:scale-95"
             onClick={() => {
               setIsOpen(true);
@@ -63,7 +63,7 @@ const Sidebar: React.FC<ISidebarProps> = ({user, chatData, chatSelected, isLoadi
           </button>
         </div>
         <TextInput
-          placeholder="Tim kiem cuoc tro chuyen"
+          placeholder="Tìm kiếm cuộc trò chuyện"
           className="h-11 w-full"
           rounded="xl"
           prefix={<FontAwesomeIcon icon={faMagnifyingGlass} className="text-sm" />}

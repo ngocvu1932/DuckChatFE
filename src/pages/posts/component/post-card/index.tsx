@@ -8,20 +8,28 @@ import {formatTimeAgo} from '../../../../utils/date';
 
 interface IPostCardProps {
   post: IPost;
-  onToggleLike: (postId: string) => void;
-  onAddComment: (postId: string, commentText: string) => void;
+  isLikeSubmitting?: boolean;
+  isCommentSubmitting?: boolean;
+  onToggleLike: (postId: string) => void | Promise<void>;
+  onAddComment: (postId: string, commentText: string) => void | Promise<void>;
 }
 
-const PostCard: React.FC<IPostCardProps> = ({post, onToggleLike, onAddComment}) => {
+const PostCard: React.FC<IPostCardProps> = ({
+  post,
+  isLikeSubmitting = false,
+  isCommentSubmitting = false,
+  onToggleLike,
+  onAddComment,
+}) => {
   const [isCommentOpen, setIsCommentOpen] = useState(false);
   const [commentText, setCommentText] = useState('');
 
-  const handleSubmitComment = () => {
+  const handleSubmitComment = async () => {
     if (!commentText.trim()) {
       return;
     }
 
-    onAddComment(post._id, commentText);
+    await onAddComment(post._id, commentText);
     setCommentText('');
     setIsCommentOpen(true);
   };
@@ -29,12 +37,15 @@ const PostCard: React.FC<IPostCardProps> = ({post, onToggleLike, onAddComment}) 
   const renderComment = (comment: IComment) => {
     return (
       <div key={comment._id} className="flex gap-3 rounded-2xl bg-slate-50/80 p-3 ring-1 ring-slate-100">
-        <div className="rounded-full bg-white p-0.5 shadow-sm">
+        <div className="flex h-fit rounded-full bg-white p-0.5 shadow-sm">
           <Avatar src={comment.user.avatar} size="34" />
         </div>
         <div className="min-w-0">
           <p className="truncate text-sm font-bold text-slate-800">{comment.user.fullname}</p>
-          <p className="text-xs font-medium text-slate-500">@{comment.user.username}</p>
+          <div className="flex gap-3">
+            <p className="text-xs font-medium text-slate-500">@{comment.user.username}</p>
+            <p className="text-xs font-medium text-slate-500">{formatTimeAgo(comment.createdAt)}</p>
+          </div>
           <p className="mt-1 text-sm leading-6 text-slate-700">{comment.content}</p>
         </div>
       </div>
@@ -95,6 +106,7 @@ const PostCard: React.FC<IPostCardProps> = ({post, onToggleLike, onAddComment}) 
               : 'bg-slate-100 text-slate-600 hover:-translate-y-0.5 hover:bg-slate-200 focus:ring-slate-200'
           }`}
           onClick={() => onToggleLike(post._id)}
+          disabled={isLikeSubmitting}
         >
           <FontAwesomeIcon icon={post.isLiked ? faHeartSolid : faHeart} />
           {post.isLiked ? 'Đã thích' : 'Thích'}
@@ -121,14 +133,16 @@ const PostCard: React.FC<IPostCardProps> = ({post, onToggleLike, onAddComment}) 
               value={commentText}
               onChange={(event) => setCommentText(event.target.value)}
               placeholder="Viết bình luận..."
+              disabled={isCommentSubmitting}
               className="h-11 flex-1 rounded-full border border-slate-200 bg-white px-4 text-sm text-slate-700 outline-none transition placeholder:text-slate-400 hover:border-slate-300 focus:border-sky-400 focus:shadow-[0_0_0_4px_rgba(56,189,248,0.14)]"
             />
             <button
               type="button"
               className="h-11 rounded-full bg-gradient-to-r from-sky-500 to-indigo-500 px-5 text-sm font-bold text-white shadow-md shadow-sky-200 transition hover:-translate-y-0.5 hover:shadow-lg focus:outline-none focus:ring-4 focus:ring-sky-200 active:translate-y-0"
               onClick={handleSubmitComment}
+              disabled={isCommentSubmitting}
             >
-              Gửi
+              {isCommentSubmitting ? 'Đang gửi...' : 'Gửi'}
             </button>
           </div>
 
