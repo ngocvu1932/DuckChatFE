@@ -67,12 +67,16 @@ const HomePage = () => {
   };
 
   return (
-    <div className="flex w-screen h-screen flex-col p-1 bg-white">
-      <div className="flex h-[8vh] rounded-t-md border border-[#E0E0E0]">
+    <div className="flex h-screen w-screen flex-col overflow-hidden bg-slate-100 p-2 text-slate-900 sm:p-3 lg:p-4">
+      <div className="flex h-16 shrink-0 rounded-t-3xl border border-white/70 bg-white/90 shadow-sm shadow-slate-200/70 backdrop-blur">
         <HeaderComp />
       </div>
-      <div className="flex h-[92vh] rounded-b-md border-x border-b border-[#E0E0E0]">
-        <div className="flex w-[20%] border-r border-[#E0E0E0] bg-[#F7F7F7] rounded-es-md">
+      <div className="flex min-h-0 flex-1 overflow-hidden rounded-b-3xl border-x border-b border-white/70 bg-white/80 shadow-xl shadow-slate-200/70 backdrop-blur">
+        <div
+          className={`w-full border-r border-slate-200/80 bg-slate-50/90 md:flex md:w-[320px] xl:w-[360px] ${
+            selectedChat ? 'hidden' : 'flex'
+          }`}
+        >
           <Sidebar
             user={user}
             isLoading={loading.chat}
@@ -80,11 +84,12 @@ const HomePage = () => {
             chatSelected={(chat: IChatSelected) => setSelectedChat(chat)}
           />
         </div>
-        <div className="flex w-[80%]">
+        <div className={`${selectedChat ? 'flex' : 'hidden'} min-w-0 flex-1 md:flex`}>
           <Content
             selectedChat={selectedChat}
             isShowDetailChat={isShowDetailChat}
             setShowDetailChat={(value) => setIsShowDetailChat(value)}
+            onBackToList={() => setSelectedChat(undefined)}
           />
         </div>
       </div>

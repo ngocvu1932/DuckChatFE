@@ -7,6 +7,8 @@ import authAPIs from '../api/auth';
 import {setUser} from '../redux/slices/userSlice';
 import Splash from '../components/splash';
 import HomePage from './home';
+import PostPage from './posts';
+import ProfilePage from './profile';
 
 const App = () => {
   const user = useSelector((state: any) => state.user.user);
@@ -47,8 +49,9 @@ const App = () => {
         {user ? (
           <>
             <Route path="/" element={<HomePage />} />
+            <Route path="/posts" element={<PostPage />} />
             <Route path="/login" element={<Navigate to="/" />} />
-            <Route path="/profile" element={<div>Profile Page</div>} />
+            <Route path="/profile" element={<ProfilePage />} />
             <Route path="*" element={<div>Page not found</div>} />
           </>
         ) : (

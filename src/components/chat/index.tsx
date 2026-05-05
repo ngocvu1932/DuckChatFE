@@ -39,12 +39,16 @@ const Chat: React.FC<IChatProps> = ({user, type = EChatType.CHAT, chat, onSelect
   const chatInfo = chat.user.find((userChat: IUserChat) => userChat._id !== user._id);
   const online = chat.isGroupChat ? false : chat.user.find((userChat) => userChat._id !== user._id)?.online;
   const avatar = chat.isGroupChat ? chat.groupImgUri : chat.user.find((userChat) => userChat._id !== user._id)?.avatar;
+  const lastMessage = chat.lastMessage?.content ? chat.lastMessage.content : 'Chua co tin nhan';
 
   return (
-    <div
-      className={`flex justify-between shadow-sm rounded-xl mt-2 py-2 px-2 cursor-pointer group ${
-        isChoose ? 'bg-[#90CAF9]' : ''
-      } `}
+    <button
+      type="button"
+      className={`group flex w-full items-center gap-3 rounded-2xl border p-3 text-left outline-none transition-all duration-200 focus-visible:ring-4 focus-visible:ring-sky-100 active:scale-[0.99] ${
+        isChoose
+          ? 'border-sky-200 bg-white text-slate-900 shadow-lg shadow-sky-100/80'
+          : 'border-transparent bg-transparent hover:-translate-y-0.5 hover:border-slate-200 hover:bg-white hover:shadow-md hover:shadow-slate-200/70'
+      }`}
       onClick={() => {
         onSelected &&
           !isChoose &&
@@ -58,26 +62,32 @@ const Chat: React.FC<IChatProps> = ({user, type = EChatType.CHAT, chat, onSelect
           });
       }}
     >
-      <div className="flex">
-        <Avatar src={avatar ?? ''} size={'55'} online={online} />
-      </div>
+      <Avatar src={avatar ?? ''} size="50" online={online} />
 
-      <div className="flex flex-1 justify-between flex-col ml-2">
-        <div className="line-clamp-1 text-[#333333]">{chatInfo?.fullname}</div>
-        <div className="text-xs line-clamp-2">
-          <span>{chat.lastMessage.sender == user._id ? 'Bạn: ' : ''}</span>
-          {chat.lastMessage.content ? chat.lastMessage.content : 'Chưa có'}
+      <div className="min-w-0 flex-1">
+        <div className="flex items-start justify-between gap-2">
+          <p className="truncate text-sm font-bold text-slate-900">{chatInfo?.fullname}</p>
+          <span className="shrink-0 text-[11px] font-medium text-slate-400">
+            {formatTime(chat.lastMessage.timestamp)}
+          </span>
         </div>
+        <p className="mt-1 line-clamp-2 text-xs leading-5 text-slate-500">
+          <span className="font-semibold text-slate-700">{chat.lastMessage.sender == user._id ? 'Ban: ' : ''}</span>
+          {lastMessage}
+        </p>
       </div>
 
-      <div className="flex flex-col justify-between items-end ">
-        <div className="hidden group-hover:block">
+      <div className="flex h-full flex-col items-end justify-between gap-2 text-slate-400">
+        <span className="flex h-7 w-7 items-center justify-center rounded-full opacity-0 transition group-hover:bg-slate-100 group-hover:opacity-100">
           <FontAwesomeIcon icon={faEllipsis} />
-        </div>
-        <div className="group-hover:hidden text-xs">{formatTime(chat.lastMessage.timestamp)}</div>
-        {!chat.isPin && <FontAwesomeIcon icon={faThumbtack} />}
+        </span>
+        {!chat.isPin && (
+          <span className="text-[11px] text-sky-500">
+            <FontAwesomeIcon icon={faThumbtack} />
+          </span>
+        )}
       </div>
-    </div>
+    </button>
   );
 };
 

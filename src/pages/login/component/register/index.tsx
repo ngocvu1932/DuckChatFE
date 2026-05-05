@@ -4,6 +4,8 @@ import TextInput from '../../../../components/text-input';
 import LoadingSpinner from '../../../../components/loading-spinner';
 import authAPIs from '../../../../api/auth';
 import {EToastNotifyType, toastNotify} from '../../../../utils/toastNotify';
+import {FontAwesomeIcon} from '@fortawesome/react-fontawesome';
+import {faEnvelope, faKey, faLock, faUser} from '@fortawesome/free-solid-svg-icons';
 
 interface IRegisterCompProps {
   setActivedTabKey: (key: string) => void;
@@ -46,12 +48,6 @@ const RegisterComp: React.FC<IRegisterCompProps> = ({setActivedTabKey}) => {
       } else {
         toastNotify(res.message, EToastNotifyType.ERROR);
       }
-
-      // else if (res.statusCode === 401) {
-      //   toastNotify(t('sys_notify_register_exist'), EToastNotifyType.ERROR);
-      // } else {
-      //   toastNotify(t('sys_notify_register_username_gmail_exist'), EToastNotifyType.ERROR);
-      // }
     } catch (error) {
     } finally {
       setIsLoading((prev) => ({...prev, register: false}));
@@ -124,8 +120,6 @@ const RegisterComp: React.FC<IRegisterCompProps> = ({setActivedTabKey}) => {
         toastNotify(t('sys_notify_verify_success'), EToastNotifyType.SUCCESS);
       } else {
         toastNotify(res.message, EToastNotifyType.ERROR);
-        // } else {
-        //   toastNotify(t('sys_notify_verify_error'), EToastNotifyType.ERROR);
       }
     } catch (error) {
       toastNotify(t('sys_notify_verify_error'), EToastNotifyType.ERROR);
@@ -135,101 +129,121 @@ const RegisterComp: React.FC<IRegisterCompProps> = ({setActivedTabKey}) => {
   };
 
   return (
-    <div className="mt-4">
+    <div className="mt-5">
       <form
-        className=""
+        className="space-y-3"
         onSubmit={(e) => {
           handleRegister(e);
         }}
       >
-        <div className="flex flex-col mb-4 ">
+        <div className="flex flex-col">
           <TextInput
+            rounded="xl"
             value={userRegister.username}
             placeholder={t('sys_login_username')}
-            className=""
+            prefix={<FontAwesomeIcon icon={faUser} />}
+            className="h-12"
             changeText={(text) => {
               (setUserRegister({...userRegister, username: text}),
                 setIsError((prev) => ({...prev, username: {error: false, textError: ''}})));
             }}
           />
-          <span className="text-red-500 italic max-w-[330px]">
+          <span className="mt-1 min-h-5 max-w-[330px] text-xs font-medium text-rose-500">
             {isError.username.error && `(*) ${isError.username.textError}`}
           </span>
         </div>
 
-        <div className="flex flex-col mb-4">
+        <div className="flex flex-col">
           <TextInput
+            rounded="xl"
             value={userRegister.email}
             placeholder={t('sys_login_email')}
-            className=""
+            prefix={<FontAwesomeIcon icon={faEnvelope} />}
+            className="h-12"
             changeText={(text) => {
               (setUserRegister({...userRegister, email: text}),
                 setIsError((prev) => ({...prev, email: {error: false, textError: ''}})));
             }}
           />
-          <span className="text-red-500 italic">{isError.email.error && `(*) ${isError.email.textError}`}</span>
+          <span className="mt-1 min-h-5 text-xs font-medium text-rose-500">
+            {isError.email.error && `(*) ${isError.email.textError}`}
+          </span>
         </div>
 
-        <div className="flex flex-col mb-4">
+        <div className="flex flex-col">
           <TextInput
+            rounded="xl"
             value={userRegister.password}
             placeholder={t('sys_login_password')}
             type="password"
-            className=""
+            prefix={<FontAwesomeIcon icon={faLock} />}
+            className="h-12"
             changeText={(text) => {
               (setUserRegister({...userRegister, password: text}),
                 setIsError((prev) => ({...prev, password: {error: false, textError: ''}})));
             }}
           />
-          <span className="text-red-500 italic">{isError.password.error && `(*) ${isError.password.textError}`}</span>
+          <span className="mt-1 min-h-5 text-xs font-medium text-rose-500">
+            {isError.password.error && `(*) ${isError.password.textError}`}
+          </span>
         </div>
 
-        <div className="flex flex-col mb-4">
+        <div className="flex flex-col">
           <TextInput
+            rounded="xl"
             value={userRegister.repassword}
             placeholder={t('sys_login_repassword')}
             type="password"
-            className=""
+            prefix={<FontAwesomeIcon icon={faKey} />}
+            className="h-12"
             changeText={(text) => {
               (setUserRegister({...userRegister, repassword: text}),
                 setIsError((prev) => ({...prev, repassword: {error: false, textError: ''}})));
             }}
           />
-          <span className="text-red-500 italic">
+          <span className="mt-1 min-h-5 text-xs font-medium text-rose-500">
             {isError.repassword.error && `(*) ${isError.repassword.textError}`}
           </span>
         </div>
 
-        <button type="submit" className="w-full bg-blue-500 text-white rounded-xl py-2">
+        <button
+          type="submit"
+          disabled={isLoading.register}
+          className="flex h-12 w-full items-center justify-center rounded-xl bg-gradient-to-r from-sky-500 to-cyan-500 px-5 text-sm font-bold text-white shadow-lg shadow-sky-200 transition-all duration-200 hover:-translate-y-0.5 hover:from-sky-600 hover:to-cyan-600 hover:shadow-xl focus:outline-none focus:ring-4 focus:ring-sky-100 active:translate-y-0 disabled:cursor-wait disabled:opacity-75"
+        >
           {isLoading.register ? <LoadingSpinner color="white" /> : t('sys_register')}
         </button>
       </form>
 
       {showModal && (
         <div
-          className="fixed top-0 left-0 w-full h-full bg-black bg-opacity-50 flex justify-center items-center"
+          className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/60 px-4 backdrop-blur-sm animate-in fade-in duration-200"
           onClick={() => setShowModal(false)}
         >
           <div
-            className="bg-white p-4 max-w-[250px] rounded-xl flex items-center flex-col"
+            className="w-full max-w-sm rounded-3xl border border-white/40 bg-white p-6 text-center shadow-2xl shadow-slate-950/25 transition-all duration-300"
             onClick={(e) => e.stopPropagation()}
           >
-            <p className="text-xl flex items-center mb-4 font-semibold">{t('sys_enter_verify_code')}</p>
-            <p className="text-center">
-              {t('sys_enter_verify_code_notify')} <span className="font-semibold italic">{userRegister.email}</span>
+            <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-2xl bg-sky-100 text-sky-600">
+              <FontAwesomeIcon icon={faEnvelope} />
+            </div>
+            <p className="mb-3 text-xl font-bold text-slate-900">{t('sys_enter_verify_code')}</p>
+            <p className="text-sm leading-6 text-slate-500">
+              {t('sys_enter_verify_code_notify')}{' '}
+              <span className="font-semibold italic text-slate-800">{userRegister.email}</span>
             </p>
 
             <input
               onChange={(e) => setVerifyCode(e.target.value)}
               type="text"
-              className="outline-none text-center font-semibold  text-lg border-b-2 border-blue-500 h-10"
+              className="mt-5 h-12 w-full rounded-xl border border-slate-200 bg-slate-50 text-center text-lg font-bold tracking-[0.32em] text-slate-900 outline-none transition-all duration-200 hover:border-sky-300 focus:border-sky-500 focus:bg-white focus:ring-4 focus:ring-sky-100"
             />
             <button
-              disabled={verifyCode === ''}
+              disabled={verifyCode === '' || isLoading.verify}
               onClick={() => {
                 handleSubmitVerify();
               }}
-              className={`${verifyCode === '' ? 'bg-blue-300' : 'bg-blue-500'} text-white rounded-xl py-2 mt-4 w-full`}
+              className="mt-5 flex h-12 w-full items-center justify-center rounded-xl bg-gradient-to-r from-sky-500 to-cyan-500 px-5 text-sm font-bold text-white shadow-lg shadow-sky-200 transition-all duration-200 hover:-translate-y-0.5 hover:from-sky-600 hover:to-cyan-600 hover:shadow-xl focus:outline-none focus:ring-4 focus:ring-sky-100 active:translate-y-0 disabled:cursor-not-allowed disabled:from-sky-300 disabled:to-cyan-300 disabled:shadow-none"
             >
               {isLoading.verify ? <LoadingSpinner color="white" /> : t('sys_submit_verify')}
             </button>

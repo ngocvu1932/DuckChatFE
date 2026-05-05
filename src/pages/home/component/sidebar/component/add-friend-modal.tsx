@@ -98,6 +98,8 @@ const AddFriendModal: React.FC<IAddFriendModalProps> = ({isOpen, onClose, curren
       }
 
       const chat = response.data;
+      const chatInfo = chat.user.find((userChat) => userChat._id !== currentUserId);
+      const avatar = chat.isGroupChat ? chat.groupImgUri : chatInfo?.avatar ?? '';
 
       if (!response.isExisting) {
         dispatch(addChat(chat));
@@ -105,10 +107,10 @@ const AddFriendModal: React.FC<IAddFriendModalProps> = ({isOpen, onClose, curren
 
       onChatSelected?.({
         chatId: chat._id,
-        chatUserId: user._id,
-        chatName: user.fullname,
-        chatUri: user.avatar ?? '',
-        online: false,
+        chatUserId: chatInfo?._id ?? user._id,
+        chatName: chatInfo?.fullname ?? user.fullname,
+        chatUri: avatar || user.avatar || '',
+        online: chatInfo?.online,
         type: EChatType.CHAT,
       });
 

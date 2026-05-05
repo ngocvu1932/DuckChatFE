@@ -4,9 +4,11 @@ import Avatar from '../../../../components/avatar';
 import {FontAwesomeIcon} from '@fortawesome/react-fontawesome';
 import {
   faCircleInfo,
+  faArrowLeft,
   faFaceKissWinkHeart,
   faGift,
   faImage,
+  faPaperPlane,
   faPhone,
   faPlus,
   faThumbsUp,
@@ -29,11 +31,14 @@ interface IContentProps {
   selectedChat: IChatSelected | undefined;
   isShowDetailChat?: boolean;
   setShowDetailChat?: (isShow: boolean) => void;
+  onBackToList?: () => void;
 }
 
-const Content: React.FC<IContentProps> = ({selectedChat, isShowDetailChat, setShowDetailChat}) => {
+const actionButtonClass =
+  'flex h-10 w-10 items-center justify-center rounded-2xl text-sky-600 transition-all duration-200 hover:-translate-y-0.5 hover:bg-sky-50 hover:text-sky-700 focus:outline-none focus-visible:ring-4 focus-visible:ring-sky-100 active:scale-95';
+
+const Content: React.FC<IContentProps> = ({selectedChat, isShowDetailChat, setShowDetailChat, onBackToList}) => {
   const user = useSelector((state: RootState) => state.user.user);
-  // const listChat = useSelector((state: RootState) => state.chat.chat);
   const messageByChat = useSelector((state: RootState) => state.message.messagesByChatId);
   const dispatch = useDispatch();
   const [messageInput, setMessageInput] = useState<string>('');
@@ -41,10 +46,7 @@ const Content: React.FC<IContentProps> = ({selectedChat, isShowDetailChat, setSh
   const scrollRef = useRef<HTMLDivElement>(null);
   const [nextCursor, setNextCursor] = useState<string | null>(null);
   const [hasMore, setHasMore] = useState(true);
-  // const [loading, setLoading] = useState(false);
   const messages = messageByChat[selectedChat?.chatId ?? ''] ?? [];
-
-  // console.log('mess', messages);
 
   useEffect(() => {
     if (selectedChat?.type === EChatType.BOT) {
@@ -52,7 +54,6 @@ const Content: React.FC<IContentProps> = ({selectedChat, isShowDetailChat, setSh
     }
   }, [selectedChat]);
 
-  // lấy danh sách tin nhắn
   useEffect(() => {
     if ((selectedChat?.chatId ?? '') != '') {
       getMessages();
@@ -75,7 +76,6 @@ const Content: React.FC<IContentProps> = ({selectedChat, isShowDetailChat, setSh
       return;
     }
 
-    // id tin nhắn tạm
     const tempId = crypto.randomUUID();
 
     const newMessage: IMessage = {
@@ -84,11 +84,11 @@ const Content: React.FC<IContentProps> = ({selectedChat, isShowDetailChat, setSh
       senderId: user?._id ?? '',
       receiverId: selectedChat?.chatUserId ?? '',
       type: 'text',
-      content: type === ETypeMessage.Emoji ? '👍' : messageInput,
+      content: type === ETypeMessage.Emoji ? '\u{1F44D}' : messageInput,
       isSeen: [],
       mediaUrl: '',
       createdAt: new Date().toISOString(),
-      status: 'sending', // trạng thái tin nhắn mới tạo
+      status: 'sending',
     };
 
     dispatch(addMessage(newMessage));
@@ -101,37 +101,27 @@ const Content: React.FC<IContentProps> = ({selectedChat, isShowDetailChat, setSh
           newMessage: res,
         }),
       );
-    }); // Gửi tin nhắn lên server
+    });
 
     setMessageInput('');
 
-    //update last mess cho list chat
     dispatch(
       updateLastMessage({
         chatId: selectedChat?.chatId ?? '',
         message: newMessage,
       }),
     );
-
-    // fallback nếu server không trả ACK
-    // setTimeout(() => {
-    //   dispatch(markFailed({chatId, messageId: tempId}));
-    // }, 5000);
   };
 
   const getMessages = async (cursor?: string) => {
-    // if (loading) return;
-    if (!hasMore && cursor) return console.log('ở đây');
+    if (!hasMore && cursor) return;
     try {
-      // setLoading(true);
-
       const res = await messageAPIs.getMessages(selectedChat?.chatId ?? '', 20, cursor);
 
       if (res.success) {
         const newMessages = res.data;
 
         if (!cursor) {
-          //load lần đầu → replace
           dispatch(
             setMessages({
               chatId: selectedChat?.chatId ?? '',
@@ -139,7 +129,6 @@ const Content: React.FC<IContentProps> = ({selectedChat, isShowDetailChat, setSh
             }),
           );
         } else {
-          //load thêm → append
           dispatch(
             addMessages({
               chatId: selectedChat?.chatId ?? '',
@@ -153,8 +142,6 @@ const Content: React.FC<IContentProps> = ({selectedChat, isShowDetailChat, setSh
       }
     } catch (error) {
       console.log(error);
-    } finally {
-      // setLoading(false);
     }
   };
 
@@ -163,60 +150,81 @@ const Content: React.FC<IContentProps> = ({selectedChat, isShowDetailChat, setSh
   };
 
   if (!selectedChat) {
-    return <div className="flex w-full h-full items-center justify-center">Chưa có tin nhắn nào được chọn</div>;
+    return (
+      <div className="flex h-full w-full items-center justify-center bg-white">
+        <div className="mx-6 max-w-sm text-center">
+          <div className="mx-auto mb-5 flex h-16 w-16 items-center justify-center rounded-3xl bg-sky-100 text-2xl text-sky-600 shadow-sm">
+            <FontAwesomeIcon icon={faThumbsUp} />
+          </div>
+          <h2 className="text-xl font-bold text-slate-900">Chon mot cuoc tro chuyen</h2>
+          <p className="mt-2 text-sm leading-6 text-slate-500">
+            Tin nhan, tep dinh kem va thong tin lien he se hien thi tai day.
+          </p>
+        </div>
+      </div>
+    );
   }
 
+  const canSendText = messageInput.trim().length > 0;
+
   return (
-    <div className="flex w-full">
-      <div
-        className={`flex flex-col flex-1 bg-white w-full min-h-0 ${isShowDetailChat ? 'rounded-l-md' : 'rounded-md'} `}
-      >
-        <div className="flex justify-between border-b border-[#E0E0E0] w-full py-2 px-3">
-          <div className="flex items-center">
-            <Avatar src={selectedChat.chatUri} online size="50" />
-            <div className="flex flex-col pl-2">
-              <div className="text-[#1E88E5] font-semibold text-lg">{selectedChat.chatName}</div>
-              <div className="text-sm opacity-80">Đang hoạt động</div>
+    <div className="flex min-h-0 w-full bg-white">
+      <div className={`flex min-w-0 flex-1 flex-col ${isShowDetailChat ? 'rounded-bl-3xl' : 'rounded-b-3xl'}`}>
+        <div className="flex shrink-0 items-center justify-between border-b border-slate-200/80 bg-white/95 px-4 py-3 backdrop-blur sm:px-5">
+          <div className="flex min-w-0 items-center gap-3">
+            <button type="button" title="Quay lai" className={`${actionButtonClass} md:hidden`} onClick={onBackToList}>
+              <FontAwesomeIcon icon={faArrowLeft} />
+            </button>
+            <Avatar src={selectedChat.chatUri} online={selectedChat.online} size="50" />
+            <div className="min-w-0">
+              <div className="truncate text-base font-bold text-slate-900 sm:text-lg">{selectedChat.chatName}</div>
+              <div className="mt-0.5 flex items-center gap-1.5 text-xs font-medium text-emerald-600">
+                <span className="h-2 w-2 rounded-full bg-emerald-500" />
+                Dang hoat dong
+              </div>
             </div>
           </div>
 
-          <div className="flex items-center">
-            {selectedChat.type === EChatType.BOT ? (
-              ''
-            ) : (
-              <div className="flex gap-6">
-                <div className="cursor-pointer text-[#1E88E5]">
-                  <FontAwesomeIcon icon={faPhone} size="lg" />
-                </div>
-                <div className="cursor-pointer text-[#1E88E5]">
-                  <FontAwesomeIcon icon={faVideo} size="lg" />
-                </div>
-
-                <div
-                  className="cursor-pointer text-[#1E88E5]"
-                  onClick={() => {
-                    setShowDetailChat && setShowDetailChat(!isShowDetailChat);
-                  }}
-                >
-                  <FontAwesomeIcon icon={faCircleInfo} size="lg" />
-                </div>
-              </div>
-            )}
-          </div>
+          {selectedChat.type !== EChatType.BOT && (
+            <div className="flex items-center gap-1 sm:gap-2">
+              <button type="button" title="Goi thoai" className={actionButtonClass}>
+                <FontAwesomeIcon icon={faPhone} />
+              </button>
+              <button type="button" title="Goi video" className={actionButtonClass}>
+                <FontAwesomeIcon icon={faVideo} />
+              </button>
+              <button
+                type="button"
+                title="Thong tin"
+                className={`${actionButtonClass} ${isShowDetailChat ? 'bg-sky-50 text-sky-700' : ''}`}
+                onClick={() => {
+                  setShowDetailChat && setShowDetailChat(!isShowDetailChat);
+                }}
+              >
+                <FontAwesomeIcon icon={faCircleInfo} />
+              </button>
+            </div>
+          )}
         </div>
 
-        <div id="scrollableDiv" ref={scrollRef} className="min-h-0 overflow-y-auto flex flex-1 flex-col-reverse">
+        <div
+          id="scrollableDiv"
+          ref={scrollRef}
+          className="min-h-0 flex flex-1 flex-col-reverse overflow-y-auto bg-gradient-to-b from-slate-50 to-white px-2 py-4 sm:px-4"
+        >
           {messages.length === 0 ? (
-            <div className="flex flex-1 items-center justify-center text-gray-400">Chưa có tin nhắn</div>
+            <div className="flex flex-1 items-center justify-center text-sm font-medium text-slate-400">
+              Chua co tin nhan
+            </div>
           ) : (
             <InfiniteScroll
               dataLength={messages.length}
               next={handleLoadMoreMessages}
               hasMore={hasMore}
               inverse={true}
-              loader={<h4>Loading...</h4>}
+              loader={<h4 className="py-3 text-center text-xs font-semibold text-slate-400">Loading...</h4>}
               scrollableTarget="scrollableDiv"
-              className="flex flex-col-reverse"
+              className="flex flex-col-reverse gap-1"
             >
               <>
                 {messages.map((message, index) => {
@@ -247,46 +255,67 @@ const Content: React.FC<IContentProps> = ({selectedChat, isShowDetailChat, setSh
           )}
         </div>
 
-        <div className="flex justify-between items-center pt-2 pb-3.5 px-3">
-          <div className="flex gap-5 items-center">
-            <div className="cursor-pointer flex items-center justify-center p-1.5 rounded-full bg-gray-100 hover:bg-gray-200">
-              <FontAwesomeIcon icon={faPlus} size="lg" />
-            </div>
-            <div className="cursor-pointer">
-              <FontAwesomeIcon icon={faImage} size="lg" />
-            </div>
-            <div className="cursor-pointer">
-              <FontAwesomeIcon icon={faGift} size="lg" />
-            </div>
+        <div className="flex shrink-0 items-center gap-2 border-t border-slate-200/80 bg-white/95 px-3 py-3 backdrop-blur sm:gap-3 sm:px-5">
+          <div className="flex items-center gap-1">
+            <button type="button" title="Them" className={actionButtonClass}>
+              <FontAwesomeIcon icon={faPlus} />
+            </button>
+            <button type="button" title="Anh" className={actionButtonClass}>
+              <FontAwesomeIcon icon={faImage} />
+            </button>
+            <button type="button" title="Qua tang" className={`${actionButtonClass} hidden sm:flex`}>
+              <FontAwesomeIcon icon={faGift} />
+            </button>
           </div>
 
-          <div className="flex flex-1 pl-5">
-            <TextInput
-              onKeyDown={(e) => {
-                if (e.key === 'Enter') {
-                  handleSendMessage(ETypeMessage.Text);
-                }
-              }}
-              value={messageInput}
-              changeText={(text) => setMessageInput(text)}
-              placeholder="Nhập nội dung tin nhắn..."
-              className="w-full"
-              rounded="full"
-              suffix={<FontAwesomeIcon icon={faFaceKissWinkHeart} color="black" />}
-            />
-          </div>
+          <TextInput
+            onKeyDown={(e) => {
+              if (e.key === 'Enter') {
+                handleSendMessage(ETypeMessage.Text);
+              }
+            }}
+            value={messageInput}
+            changeText={(text) => setMessageInput(text)}
+            placeholder="Nhap noi dung tin nhan..."
+            className="h-12 min-w-0 flex-1"
+            rounded="full"
+            suffix={<FontAwesomeIcon icon={faFaceKissWinkHeart} />}
+          />
 
-          <div
-            className="flex pl-5 pr-2 text-[#1E88E5] cursor-pointer"
-            onClick={() => handleSendMessage(ETypeMessage.Emoji)}
+          <button
+            type="button"
+            title={canSendText ? 'Gui tin nhan' : 'Gui cam xuc'}
+            className={`flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl text-white shadow-lg transition-all duration-200 hover:-translate-y-0.5 focus:outline-none focus-visible:ring-4 focus-visible:ring-sky-100 active:scale-95 ${
+              canSendText
+                ? 'bg-sky-500 shadow-sky-200 hover:bg-sky-600'
+                : 'bg-indigo-500 shadow-indigo-200 hover:bg-indigo-600'
+            }`}
+            onClick={() => handleSendMessage(canSendText ? ETypeMessage.Text : ETypeMessage.Emoji)}
           >
-            <FontAwesomeIcon icon={faThumbsUp} size="lg" />
-          </div>
+            <FontAwesomeIcon icon={canSendText ? faPaperPlane : faThumbsUp} />
+          </button>
         </div>
       </div>
 
       {isShowDetailChat && (
-        <div className="flex flex-1 border-l border-[#E0E0E0] bg-white rounded-r-md max-w-[30%]">detail ở đây</div>
+        <aside className="hidden w-[300px] shrink-0 border-l border-slate-200/80 bg-slate-50/80 p-5 lg:block xl:w-[340px]">
+          <div className="flex flex-col items-center text-center">
+            <Avatar src={selectedChat.chatUri} online={selectedChat.online} size="55" />
+            <h3 className="mt-3 max-w-full truncate text-lg font-bold text-slate-900">{selectedChat.chatName}</h3>
+            <p className="mt-1 text-sm font-medium text-emerald-600">Dang hoat dong</p>
+          </div>
+
+          <div className="mt-6 space-y-3">
+            <button className="flex w-full items-center justify-between rounded-2xl border border-slate-200 bg-white px-4 py-3 text-left text-sm font-semibold text-slate-700 shadow-sm transition hover:-translate-y-0.5 hover:border-sky-200 hover:text-sky-700">
+              Thong tin cuoc tro chuyen
+              <FontAwesomeIcon icon={faCircleInfo} className="text-sky-500" />
+            </button>
+            <button className="flex w-full items-center justify-between rounded-2xl border border-slate-200 bg-white px-4 py-3 text-left text-sm font-semibold text-slate-700 shadow-sm transition hover:-translate-y-0.5 hover:border-sky-200 hover:text-sky-700">
+              Anh va tep da chia se
+              <FontAwesomeIcon icon={faImage} className="text-sky-500" />
+            </button>
+          </div>
+        </aside>
       )}
     </div>
   );

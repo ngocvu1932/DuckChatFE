@@ -1,3 +1,56 @@
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+
+@keyframes reaction-pop {
+  0% {
+    transform: scale(1) rotate(0deg);
+  }
+
+  32% {
+    transform: scale(1.48) rotate(-8deg);
+  }
+
+  58% {
+    transform: scale(0.92) rotate(5deg);
+  }
+
+  100% {
+    transform: scale(1) rotate(0deg);
+  }
+}
+
+@keyframes reaction-flash {
+  0% {
+    opacity: 0.8;
+    transform: scale(0.75);
+  }
+
+  100% {
+    opacity: 0;
+    transform: scale(1.45);
+  }
+}
+
+@keyframes reaction-burst {
+  0% {
+    opacity: 0.95;
+    transform: translate3d(-50%, -50%, 0) scale(0.65) rotate(0deg);
+  }
+
+  72% {
+    opacity: 0.8;
+  }
+
+  100% {
+    opacity: 0;
+    transform: translate3d(calc(-50% + var(--burst-x)), calc(-50% + var(--burst-y)), 0) scale(0.25)
+      rotate(var(--burst-rotate));
+  }
+}
+
+.reaction-burst-particle {
+  animation: reaction-burst 640ms cubic-bezier(0.16, 1, 0.3, 1) var(--burst-delay) both;
+  font-size: var(--burst-size);
+  transform: translate3d(-50%, -50%, 0);
+}

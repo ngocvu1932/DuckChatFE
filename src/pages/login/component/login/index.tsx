@@ -7,6 +7,8 @@ import {useDispatch} from 'react-redux';
 import {setUser} from '../../../../redux/slices/userSlice';
 import Cookies from 'js-cookie';
 import {toast} from 'react-toastify';
+import {FontAwesomeIcon} from '@fortawesome/react-fontawesome';
+import {faLock, faUser} from '@fortawesome/free-solid-svg-icons';
 
 const LoginComp = () => {
   const {t} = useTranslation();
@@ -52,30 +54,6 @@ const LoginComp = () => {
           theme: 'light',
         });
       }
-      // else {
-      //     toast.error(t('sys_notify_login_fail'), {
-      //       position: 'top-right',
-      //       autoClose: 3000,
-      //       hideProgressBar: false,
-      //       closeOnClick: true,
-      //       pauseOnHover: true,
-      //       draggable: true,
-      //       progress: undefined,
-      //       theme: 'light',
-      //     });
-      //   }
-      // } catch (error) {
-      //   console.error('Login failed:', error);
-      //   toast.error(t('sys_notify_login_fail'), {
-      //     position: 'top-right',
-      //     autoClose: 3000,
-      //     hideProgressBar: false,
-      //     closeOnClick: true,
-      //     pauseOnHover: true,
-      //     draggable: true,
-      //     progress: undefined,
-      //     theme: 'light',
-      //   });
     } finally {
       setIsLoading(false);
     }
@@ -115,39 +93,59 @@ const LoginComp = () => {
   };
 
   return (
-    <div className="mt-4">
-      <form className="" onSubmit={(e) => handleLogin(e)}>
-        <div className="flex flex-col mb-4">
+    <div className="mt-5">
+      <form className="space-y-4" onSubmit={(e) => handleLogin(e)}>
+        <div className="flex flex-col">
           <TextInput
+            rounded="xl"
             value={userLogin.username}
             placeholder={t('sys_login_username')}
-            className=""
+            prefix={<FontAwesomeIcon icon={faUser} />}
+            className="h-12"
             changeText={(text) => setUserLogin({...userLogin, username: text})}
           />
-          <span className="text-red-500 italic">{isError.username.error && `(*) ${isError.username.textError}`}</span>
+          <span className="mt-1 min-h-5 text-xs font-medium text-rose-500">
+            {isError.username.error && `(*) ${isError.username.textError}`}
+          </span>
         </div>
 
-        <div className="flex flex-col mb-4">
+        <div className="flex flex-col">
           <TextInput
+            rounded="xl"
             value={userLogin.password}
             placeholder={t('sys_login_password')}
             type="password"
-            className=""
+            prefix={<FontAwesomeIcon icon={faLock} />}
+            className="h-12"
             changeText={(text) => setUserLogin({...userLogin, password: text})}
           />
-          <span className="text-red-500 italic">{isError.password.error && `(*) ${isError.password.textError}`}</span>
+          <span className="mt-1 min-h-5 text-xs font-medium text-rose-500">
+            {isError.password.error && `(*) ${isError.password.textError}`}
+          </span>
         </div>
 
-        <div className="flex justify-between items-center mb-4">
-          <label className="text-sm flex items-center">
-            <input type="checkbox" checked={rememberMe} onChange={changeRememberMe} className="w-4 h-4" />
-            <p className="px-2">{t('sys_login_remember')}</p> {/* Ghi nhớ tôi*/}
+        <div className="flex items-center justify-between gap-4">
+          <label className="flex cursor-pointer items-center text-sm font-medium text-slate-600 transition-colors duration-200 hover:text-slate-900">
+            <input
+              type="checkbox"
+              checked={rememberMe}
+              onChange={changeRememberMe}
+              className="h-4 w-4 rounded border-slate-300 text-sky-500 transition duration-200 focus:ring-4 focus:ring-sky-100"
+            />
+            <p className="px-2">{t('sys_login_remember')}</p>
           </label>
-          <a href="#" className="text-sm">
-            {t('sys_login_forgot_password')} {/* Quên mật khẩu? */}
+          <a
+            href="#"
+            className="text-sm font-semibold text-sky-600 transition-colors duration-200 hover:text-sky-700 focus:outline-none focus:ring-4 focus:ring-sky-100"
+          >
+            {t('sys_login_forgot_password')}
           </a>
         </div>
-        <button type="submit" className="w-full bg-blue-500 text-white rounded-xl py-2">
+        <button
+          type="submit"
+          disabled={isLoading}
+          className="mt-2 flex h-12 w-full items-center justify-center rounded-xl bg-gradient-to-r from-sky-500 to-cyan-500 px-5 text-sm font-bold text-white shadow-lg shadow-sky-200 transition-all duration-200 hover:-translate-y-0.5 hover:from-sky-600 hover:to-cyan-600 hover:shadow-xl focus:outline-none focus:ring-4 focus:ring-sky-100 active:translate-y-0 disabled:cursor-wait disabled:opacity-75"
+        >
           {isLoading ? <LoadingSpinner color="white" /> : t('sys_login')}
         </button>
       </form>

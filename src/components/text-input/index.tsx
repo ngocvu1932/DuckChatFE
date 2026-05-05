@@ -41,9 +41,11 @@ const TextInput: React.FC<ITextInputProps> = ({
   const roundedClass = roundedClassMap[rounded];
 
   return (
-    <span title={title} className={`${className} flex items-center ${roundedClass} relative`}>
+    <span title={title} className={`${className ?? ''} group relative flex items-center ${roundedClass}`}>
       {prefix && (
-        <span className="absolute left-3 flex items-center h-full text-gray-500 pointer-events-none">{prefix}</span>
+        <span className="absolute left-4 flex items-center h-full text-slate-400 transition-colors duration-200 pointer-events-none group-focus-within:text-sky-500">
+          {prefix}
+        </span>
       )}
       <input
         onKeyDown={onKeyDown}
@@ -53,11 +55,11 @@ const TextInput: React.FC<ITextInputProps> = ({
         onChange={(e) => changeText && changeText(e.target.value)}
         type={type}
         placeholder={placeholder}
-        className={`${prefix ? 'pl-9' : ''} ${
+        className={`${prefix ? 'pl-11' : ''} ${
           suffix ? 'pr-9' : ''
-        } w-full h-full px-3 py-2 border border-slate-300 ${roundedClass} hover:border-blue-500 focus:outline-none focus:ring-blue-500`}
+        } h-full w-full border border-slate-200 bg-white/95 px-4 py-3 text-sm font-medium text-slate-800 shadow-sm shadow-slate-200/60 placeholder:text-slate-400 ${roundedClass} transition-all duration-200 hover:border-sky-300 hover:shadow-md hover:shadow-sky-100/70 focus:border-sky-500 focus:outline-none focus:ring-4 focus:ring-sky-100 disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-400`}
       />
-      {suffix && <span className="absolute right-3 flex items-center h-full text-gray-500">{suffix}</span>}
+      {suffix && <span className="absolute right-4 flex items-center h-full text-slate-400">{suffix}</span>}
     </span>
   );
 };
