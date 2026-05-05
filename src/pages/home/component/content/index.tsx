@@ -1,4 +1,4 @@
-import React, {useEffect, useRef, useState} from 'react';
+import React, {useEffect, useLayoutEffect, useMemo, useRef, useState} from 'react';
 import {EChatType, IChatSelected} from '../../../../components/chat';
 import Avatar from '../../../../components/avatar';
 import {FontAwesomeIcon} from '@fortawesome/react-fontawesome';
@@ -22,7 +22,6 @@ import {ETypeMessage} from '../../../../types/enum';
 import {RootState} from '../../../../redux/store';
 import {updateLastMessage} from '../../../../redux/slices/chatSlice';
 import {addMessage, addMessages, setMessages, updateMessage} from '../../../../redux/slices/messageSlice';
-import InfiniteScroll from 'react-infinite-scroll-component';
 import {IMessage} from '../../../../api/message/interface';
 import messageAPIs from '../../../../api/message';
 import moment from 'moment';
@@ -47,6 +46,15 @@ const Content: React.FC<IContentProps> = ({selectedChat, isShowDetailChat, setSh
   const [nextCursor, setNextCursor] = useState<string | null>(null);
   const [hasMore, setHasMore] = useState(true);
   const messages = messageByChat[selectedChat?.chatId ?? ''] ?? [];
+  const displayedMessages = useMemo(() => [...messages].reverse(), [messages]);
+  const isAtBottomRef = useRef(true);
+  const previousNewestMessageRef = useRef<{chatId: string; messageKey: string}>({
+    chatId: '',
+    messageKey: '',
+  });
+  const loadingMorePromiseRef = useRef<Promise<void> | null>(null);
+  const pendingScrollRestoreRef = useRef<{scrollHeight: number; scrollTop: number} | null>(null);
+  const [isLoadingMore, setIsLoadingMore] = useState(false);
 
   useEffect(() => {
     if (selectedChat?.type === EChatType.BOT) {
@@ -56,6 +64,7 @@ const Content: React.FC<IContentProps> = ({selectedChat, isShowDetailChat, setSh
 
   useEffect(() => {
     if ((selectedChat?.chatId ?? '') != '') {
+      loadingMorePromiseRef.current = null;
       getMessages();
     }
   }, [selectedChat?.chatId]);
@@ -68,7 +77,36 @@ const Content: React.FC<IContentProps> = ({selectedChat, isShowDetailChat, setSh
   };
 
   useEffect(() => {
-    scrollToBottom();
+    const chatId = selectedChat?.chatId ?? '';
+    const newestMessage = messages[0];
+    const newestMessageKey = newestMessage?._id ?? newestMessage?.messageId ?? '';
+    const previousNewestMessage = previousNewestMessageRef.current;
+    const isChangedChat = previousNewestMessage.chatId !== chatId;
+    const isNewMessage = newestMessageKey !== '' && previousNewestMessage.messageKey !== newestMessageKey;
+    const isOwnMessage = newestMessage?.senderId === user?._id;
+
+    previousNewestMessageRef.current = {
+      chatId,
+      messageKey: newestMessageKey,
+    };
+
+    if (isChangedChat || (isNewMessage && (isOwnMessage || isAtBottomRef.current))) {
+      scrollToBottom();
+    }
+  }, [messages, selectedChat?.chatId, user?._id]);
+
+  useLayoutEffect(() => {
+    const restoreState = pendingScrollRestoreRef.current;
+    const el = scrollRef.current;
+
+    if (!restoreState || !el) {
+      return;
+    }
+
+    const scrollHeightDiff = el.scrollHeight - restoreState.scrollHeight;
+
+    el.scrollTop = restoreState.scrollTop + scrollHeightDiff;
+    pendingScrollRestoreRef.current = null;
   }, [messages.length]);
 
   const handleSendMessage = async (type: ETypeMessage) => {
@@ -114,7 +152,8 @@ const Content: React.FC<IContentProps> = ({selectedChat, isShowDetailChat, setSh
   };
 
   const getMessages = async (cursor?: string) => {
-    if (!hasMore && cursor) return;
+    if (cursor && !hasMore) return;
+
     try {
       const res = await messageAPIs.getMessages(selectedChat?.chatId ?? '', 20, cursor);
 
@@ -146,7 +185,29 @@ const Content: React.FC<IContentProps> = ({selectedChat, isShowDetailChat, setSh
   };
 
   const handleLoadMoreMessages = async () => {
-    await getMessages(nextCursor ?? '');
+    if (!nextCursor) {
+      setHasMore(false);
+      return;
+    }
+
+    const el = scrollRef.current;
+
+    if (el) {
+      pendingScrollRestoreRef.current = {
+        scrollHeight: el.scrollHeight,
+        scrollTop: el.scrollTop,
+      };
+    }
+
+    if (!loadingMorePromiseRef.current) {
+      setIsLoadingMore(true);
+      loadingMorePromiseRef.current = getMessages(nextCursor).finally(() => {
+        loadingMorePromiseRef.current = null;
+        setIsLoadingMore(false);
+      });
+    }
+
+    await loadingMorePromiseRef.current;
   };
 
   if (!selectedChat) {
@@ -210,48 +271,49 @@ const Content: React.FC<IContentProps> = ({selectedChat, isShowDetailChat, setSh
         <div
           id="scrollableDiv"
           ref={scrollRef}
-          className="min-h-0 flex flex-1 flex-col-reverse overflow-y-auto bg-gradient-to-b from-slate-50 to-white px-2 py-4 sm:px-4"
+          className="min-h-0 flex flex-1 flex-col overflow-y-auto bg-gradient-to-b from-slate-50 to-white px-2 py-4 sm:px-4"
+          onScroll={(event) => {
+            const el = event.currentTarget;
+            const distanceFromBottom = el.scrollHeight - el.clientHeight - el.scrollTop;
+
+            isAtBottomRef.current = distanceFromBottom <= 80;
+
+            if (el.scrollTop <= 80 && hasMore && !loadingMorePromiseRef.current) {
+              handleLoadMoreMessages();
+            }
+          }}
         >
           {messages.length === 0 ? (
             <div className="flex flex-1 items-center justify-center text-sm font-medium text-slate-400">
               Chưa có tin nhắn
             </div>
           ) : (
-            <InfiniteScroll
-              dataLength={messages.length}
-              next={handleLoadMoreMessages}
-              hasMore={hasMore}
-              inverse={true}
-              loader={<h4 className="py-3 text-center text-xs font-semibold text-slate-400">Loading...</h4>}
-              scrollableTarget="scrollableDiv"
-              className="flex flex-col-reverse gap-1"
-            >
-              <>
-                {messages.map((message, index) => {
-                  const isLastMessage = index === 0;
-                  const hasReact = message?.react && message.react.length > 0;
-                  const paddingClass = isLastMessage ? 'pb-8' : hasReact ? 'pb-4' : '';
-                  const nextMessage = messages[index - 1];
-                  const aboveMessage = messages[index + 1];
-                  const showTime = !nextMessage || nextMessage.senderId !== message.senderId;
-                  const showDateTime =
-                    !aboveMessage || !moment(aboveMessage.createdAt).isSame(moment(message.createdAt), 'day');
+            <div className="flex flex-col gap-1">
+              {isLoadingMore && <h4 className="py-3 text-center text-xs font-semibold text-slate-400">Loading...</h4>}
+              {displayedMessages.map((message, index) => {
+                const isLastMessage = index === displayedMessages.length - 1;
+                const hasReact = message?.react && message.react.length > 0;
+                const paddingClass = isLastMessage ? 'pb-8' : hasReact ? 'pb-4' : '';
+                const previousMessage = displayedMessages[index - 1];
+                const nextMessage = displayedMessages[index + 1];
+                const showTime = !nextMessage || nextMessage.senderId !== message.senderId;
+                const showDateTime =
+                  !previousMessage || !moment(previousMessage.createdAt).isSame(moment(message.createdAt), 'day');
 
-                  return (
-                    <div key={index} className={`flex w-full ${paddingClass}`}>
-                      <Message
-                        showTime={showTime}
-                        showDateTime={showDateTime}
-                        user={user}
-                        message={message}
-                        receiverId={selectedChat?.chatUserId ?? ''}
-                      />
-                    </div>
-                  );
-                })}
-                <div ref={messagesEndRef} />
-              </>
-            </InfiniteScroll>
+                return (
+                  <div key={message._id ?? message.messageId} className={`flex w-full ${paddingClass}`}>
+                    <Message
+                      showTime={showTime}
+                      showDateTime={showDateTime}
+                      user={user}
+                      message={message}
+                      receiverId={selectedChat?.chatUserId ?? ''}
+                    />
+                  </div>
+                );
+              })}
+              <div ref={messagesEndRef} />
+            </div>
           )}
         </div>
 
