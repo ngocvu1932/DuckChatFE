@@ -17,7 +17,13 @@ class Post {
   }
 
   getPost(limit: number, cursor?: string): Promise<IGetPostResponse> {
-    return axiosInstance.get(`/api/post/get-posts?page=1&limit=${limit}${cursor ? `&cursor=${cursor}` : ''}`);
+    return axiosInstance.get(`/api/post/get-posts?limit=${limit}${cursor ? `&cursor=${cursor}` : ''}`);
+  }
+
+  getPostsByUserId(userId: string, limit: number, cursor?: string): Promise<IGetPostResponse> {
+    return axiosInstance.get(
+      `/api/post/get-posts-by-user/${userId}?limit=${limit}${cursor ? `&cursor=${cursor}` : ''}`,
+    );
   }
 }
 

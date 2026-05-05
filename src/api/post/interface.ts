@@ -1,14 +1,8 @@
 export interface IGetPostResponse {
   success: boolean;
-  message: string;
+  message?: string;
   data: IPost[];
-  pagination?: {
-    page: number;
-    limit: number;
-    total: number;
-    hasMore: boolean;
-  };
-  nextCursor?: string;
+  nextCursor?: string | null;
 }
 
 export interface IPostAuthor {

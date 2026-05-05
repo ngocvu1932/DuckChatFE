@@ -1,6 +1,15 @@
-import {useMemo, useState} from 'react';
+import {useEffect, useState} from 'react';
 import {useDispatch, useSelector} from 'react-redux';
 import {Link} from 'react-router-dom';
+import {FontAwesomeIcon} from '@fortawesome/react-fontawesome';
+import {
+  faArrowRight,
+  faComments,
+  faCompass,
+  faImage,
+  faPenToSquare,
+  faWandMagicSparkles,
+} from '@fortawesome/free-solid-svg-icons';
 import HeaderComp from '../home/component/header';
 import LoginPage from '../login';
 import {RootState} from '../../redux/store';
@@ -9,77 +18,61 @@ import PostCard from '../posts/component/post-card';
 import ProfileHero from './component/profile-hero';
 import ProfileInfo from './component/profile-info';
 import EditProfileModal from './component/edit-profile-modal';
-import {IComment, IPost} from '../../api/post/interface';
+import {IPost} from '../../api/post/interface';
+import postAPIs from '../../api/post';
 
-const myPostsSeed = [
-  {
-    _id: 'my-post-1',
-    content:
-      'Hom nay minh review tiep giao dien ProfilePage cho DuckChat. Muc tieu la gọn, ro, va de noi API that sau nay.',
-    images: ['https://images.unsplash.com/photo-1494526585095-c41746248156?auto=format&fit=crop&w=1200&q=80'],
-    likeCount: 12,
-    commentCount: 1,
-    isLiked: false,
-    createdLabel: 'Hom nay',
-    comments: [
-      {
-        _id: 'my-comment-1',
-        user: {
-          _id: 'friend-1',
-          fullname: 'Minh Thu',
-          username: 'minhthu',
-          avatar: 'https://i.pravatar.cc/120?img=5',
-        },
-        content: 'Profile nay nhin on, tiep tuc nhe.',
-        createdAt: new Date().toISOString(),
-      },
-    ],
-  },
-  {
-    _id: 'my-post-2',
-    content: 'Sau profile se la phase noi API update thong tin va danh sach bai dang that.',
-    images: [],
-    likeCount: 4,
-    commentCount: 0,
-    isLiked: true,
-    createdLabel: '2 ngay truoc',
-    comments: [],
-  },
-];
+const POST_LIMIT = 20;
 
 const ProfilePage = () => {
   const user = useSelector((state: RootState) => state.user.user);
   const dispatch = useDispatch();
   const [isEditOpen, setIsEditOpen] = useState(false);
-  const [myPosts, setMyPosts] = useState<IPost[]>([]);
+  const [posts, setPosts] = useState<IPost[]>([]);
+  const [nextCursor, setNextCursor] = useState<string | null>(null);
+  const [isLoadingPosts, setIsLoadingPosts] = useState(false);
+  const [isLoadingMorePosts, setIsLoadingMorePosts] = useState(false);
+  const [postError, setPostError] = useState('');
+  const [submittingLikePostIds, setSubmittingLikePostIds] = useState<string[]>([]);
+  const [submittingCommentPostIds, setSubmittingCommentPostIds] = useState<string[]>([]);
 
-  const posts = useMemo<IPost[]>(() => {
-    if (!user) {
-      return [];
+  useEffect(() => {
+    if (!user?._id) {
+      return;
     }
 
-    if (myPosts.length > 0) {
-      return myPosts;
+    getPostsByUserId(user._id);
+  }, [user?._id]);
+
+  async function getPostsByUserId(userId: string, cursor?: string) {
+    const isLoadMore = Boolean(cursor);
+
+    if (isLoadMore) {
+      setIsLoadingMorePosts(true);
+    } else {
+      setIsLoadingPosts(true);
+      setPosts([]);
+      setNextCursor(null);
     }
 
-    return myPostsSeed.map((post) => ({
-      _id: post._id,
-      user: {
-        _id: user._id,
-        fullname: user.fullname,
-        username: user.username,
-        avatar: user.avatar,
-      },
-      content: post.content,
-      images: post.images,
-      likeCount: post.likeCount,
-      commentCount: post.commentCount,
-      isLiked: post.isLiked,
-      createdAt: new Date().toISOString(),
-      createdLabel: post.createdLabel,
-      comments: post.comments,
-    }));
-  }, [myPosts, user]);
+    setPostError('');
+
+    try {
+      const res = await postAPIs.getPostsByUserId(userId, POST_LIMIT, cursor);
+
+      if (res.success) {
+        setPosts((prev) => (isLoadMore ? [...prev, ...res.data] : res.data));
+        setNextCursor(res.nextCursor ?? null);
+      } else {
+        setPostError(res.message ?? 'Khong the lay danh sach bai dang.');
+      }
+    } catch (error) {
+      console.log(error);
+      setPostError('Khong the lay danh sach bai dang.');
+    } finally {
+      setIsLoadingPosts(false);
+      setIsLoadingMorePosts(false);
+    }
+  }
 
   if (!user) {
     return <LoginPage />;
@@ -100,11 +93,21 @@ const ProfilePage = () => {
     setIsEditOpen(false);
   };
 
-  const handleToggleLike = (postId: string) => {
-    setMyPosts((prev) => {
-      const basePosts = prev.length > 0 ? prev : posts;
+  const handleToggleLike = async (postId: string) => {
+    if (submittingLikePostIds.includes(postId)) {
+      return;
+    }
 
-      return basePosts.map((post) => {
+    const currentPost = posts.find((post) => post._id === postId);
+
+    if (!currentPost) {
+      return;
+    }
+
+    setSubmittingLikePostIds((prev) => [...prev, postId]);
+
+    setPosts((prev) =>
+      prev.map((post) => {
         if (post._id !== postId) {
           return post;
         }
@@ -116,38 +119,49 @@ const ProfilePage = () => {
           isLiked,
           likeCount: isLiked ? post.likeCount + 1 : Math.max(post.likeCount - 1, 0),
         };
-      });
-    });
+      }),
+    );
+
+    try {
+      const res = await postAPIs.likePost({postId});
+
+      if (res.success) {
+        setPosts((prev) => prev.map((post) => (post._id === postId ? res.data : post)));
+      } else {
+        setPosts((prev) => prev.map((post) => (post._id === postId ? currentPost : post)));
+      }
+    } catch (error) {
+      console.log(error);
+      setPosts((prev) => prev.map((post) => (post._id === postId ? currentPost : post)));
+    } finally {
+      setSubmittingLikePostIds((prev) => prev.filter((id) => id !== postId));
+    }
   };
 
-  const handleAddComment = (postId: string, commentText: string) => {
-    const nextComment: IComment = {
-      _id: `profile-comment-${Date.now()}`,
-      user: {
-        _id: user._id,
-        fullname: user.fullname,
-        username: user.username,
-        avatar: user.avatar,
-      },
-      content: commentText.trim(),
-      createdAt: new Date().toISOString(),
-    };
+  const handleAddComment = async (postId: string, commentText: string) => {
+    const trimmedComment = commentText.trim();
 
-    setMyPosts((prev) => {
-      const basePosts = prev.length > 0 ? prev : posts;
+    if (!trimmedComment || submittingCommentPostIds.includes(postId)) {
+      return;
+    }
 
-      return basePosts.map((post) => {
-        if (post._id !== postId) {
-          return post;
-        }
+    setSubmittingCommentPostIds((prev) => [...prev, postId]);
 
-        return {
-          ...post,
-          commentCount: post.commentCount + 1,
-          comments: [...post.comments, nextComment],
-        };
+    try {
+      const res = await postAPIs.commentPost({
+        postId,
+        content: trimmedComment,
+        images: [],
       });
-    });
+
+      if (res.success) {
+        setPosts((prev) => prev.map((post) => (post._id === postId ? res.data : post)));
+      }
+    } catch (error) {
+      console.log(error);
+    } finally {
+      setSubmittingCommentPostIds((prev) => prev.filter((id) => id !== postId));
+    }
   };
 
   return (
@@ -156,9 +170,9 @@ const ProfilePage = () => {
         <HeaderComp />
       </div>
 
-      <div className="flex h-[92vh] rounded-b-md border-x border-b border-[#E0E0E0] bg-[linear-gradient(180deg,#f8fbff_0%,#eef4fb_100%)]">
-        <div className="h-full flex-1 overflow-y-auto px-4 py-5">
-          <div className="mx-auto grid w-full max-w-7xl gap-5 xl:grid-cols-[1.7fr_1fr]">
+      <div className="flex h-[92vh] overflow-hidden rounded-b-2xl border-x border-b border-slate-200 bg-[radial-gradient(circle_at_top_left,#dbeafe_0%,transparent_34%),linear-gradient(180deg,#f8fbff_0%,#eef4fb_100%)]">
+        <main className="h-full flex-1 overflow-y-auto px-3 py-4 sm:px-5 lg:px-7">
+          <div className="mx-auto grid w-full max-w-7xl gap-5 xl:grid-cols-[minmax(0,1.65fr)_minmax(300px,0.85fr)]">
             <div className="space-y-5">
               <ProfileHero
                 user={user}
@@ -167,62 +181,121 @@ const ProfilePage = () => {
                 onEdit={() => setIsEditOpen(true)}
               />
 
-              <section className="rounded-[28px] border border-slate-200 bg-white p-6 shadow-sm">
-                <div className="flex items-center justify-between">
+              <section className="rounded-2xl border border-white/80 bg-white/95 p-4 shadow-sm shadow-slate-200/70 transition duration-300 hover:-translate-y-0.5 hover:shadow-lg hover:shadow-slate-200/80 sm:p-5">
+                <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
                   <div>
-                    <p className="text-sm font-semibold uppercase tracking-[0.2em] text-slate-400">Bai dang</p>
-                    <h2 className="mt-2 text-xl font-semibold text-slate-800">Bai dang cua toi</h2>
+                    <div className="inline-flex items-center gap-2 rounded-full bg-sky-50 px-3 py-1 text-xs font-bold uppercase tracking-[0.2em] text-sky-600 ring-1 ring-sky-100">
+                      <FontAwesomeIcon icon={faWandMagicSparkles} />
+                      Bài đăng
+                    </div>
+                    <h2 className="mt-3 text-2xl font-bold tracking-tight text-slate-900">Bài đăng của tôi</h2>
+                    <p className="mt-1 text-sm leading-6 text-slate-500">
+                      Theo dõi nội dung, hình ảnh và tương tác mới nhất trên hồ sơ của bạn.
+                    </p>
                   </div>
+
                   <Link
                     to="/posts"
-                    className="rounded-full border border-slate-200 px-4 py-2 text-sm font-medium text-slate-600 transition hover:border-blue-300 hover:text-blue-600"
+                    className="inline-flex h-11 items-center justify-center gap-2 rounded-full border border-slate-200 bg-white px-4 text-sm font-bold text-slate-600 shadow-sm transition duration-200 hover:-translate-y-0.5 hover:border-sky-200 hover:bg-sky-50 hover:text-sky-700 focus:outline-none focus:ring-4 focus:ring-sky-100 active:translate-y-0"
                   >
-                    Sang bang tin
+                    Sang bảng tin
+                    <FontAwesomeIcon icon={faArrowRight} className="text-xs" />
                   </Link>
                 </div>
 
-                <div className="mt-5 space-y-5">
-                  {posts.length > 0 ? (
+                <div className="mt-6 space-y-5">
+                  {isLoadingPosts ? (
+                    <div className="rounded-2xl border border-slate-200 bg-white/80 p-10 text-center text-sm font-semibold text-slate-500 shadow-sm">
+                      Dang tai bai dang...
+                    </div>
+                  ) : postError ? (
+                    <div className="rounded-2xl border border-rose-100 bg-rose-50 p-5 text-sm font-semibold text-rose-600 shadow-sm">
+                      {postError}
+                    </div>
+                  ) : posts.length > 0 ? (
                     posts.map((post) => (
                       <PostCard
                         key={post._id}
                         post={post}
+                        isLikeSubmitting={submittingLikePostIds.includes(post._id)}
+                        isCommentSubmitting={submittingCommentPostIds.includes(post._id)}
                         onToggleLike={handleToggleLike}
                         onAddComment={handleAddComment}
                       />
                     ))
                   ) : (
-                    <div className="rounded-2xl border border-dashed border-slate-300 bg-slate-50 p-6 text-center text-slate-500">
-                      Chua co bai dang nao. Hay sang trang Bai dang de tao bai dau tien.
+                    <div className="rounded-2xl border border-dashed border-slate-300 bg-white/80 p-10 text-center shadow-sm">
+                      <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-2xl bg-sky-100 text-sky-600 shadow-sm">
+                        <FontAwesomeIcon icon={faPenToSquare} />
+                      </div>
+                      <p className="mt-4 text-sm font-semibold text-slate-800">
+                        Chưa có bài đăng nào. Hãy sang trang Bài đăng để tạo bài đầu tiên.
+                      </p>
                     </div>
                   )}
+
+                  {/* {!isLoadingPosts && nextCursor && (
+                    <div className="flex justify-center">
+                      <button
+                        type="button"
+                        onClick={() => getPostsByUserId(user._id, nextCursor)}
+                        disabled={isLoadingMorePosts}
+                        className="inline-flex h-11 items-center justify-center rounded-full border border-slate-200 bg-white px-5 text-sm font-bold text-slate-600 shadow-sm transition duration-200 hover:-translate-y-0.5 hover:border-sky-200 hover:bg-sky-50 hover:text-sky-700 focus:outline-none focus:ring-4 focus:ring-sky-100 active:translate-y-0 disabled:cursor-not-allowed disabled:opacity-60"
+                      >
+                        {isLoadingMorePosts ? 'Dang tai...' : 'Tai them'}
+                      </button>
+                    </div>
+                  )} */}
                 </div>
               </section>
             </div>
 
-            <div className="space-y-5">
+            <aside className="space-y-5 xl:sticky xl:top-5 xl:self-start">
               <ProfileInfo user={user} />
 
-              <section className="rounded-[28px] border border-slate-200 bg-white p-6 shadow-sm">
-                <p className="text-sm font-semibold uppercase tracking-[0.2em] text-slate-400">Dieu huong</p>
-                <div className="mt-4 space-y-3">
+              <section className="rounded-2xl border border-white/80 bg-white/90 p-5 shadow-sm shadow-slate-200/70">
+                <div className="inline-flex items-center gap-2 rounded-full bg-indigo-50 px-3 py-1 text-xs font-bold uppercase tracking-[0.2em] text-indigo-600 ring-1 ring-indigo-100">
+                  <FontAwesomeIcon icon={faCompass} />
+                  Điều hướng
+                </div>
+
+                <div className="mt-5 grid gap-3">
                   <Link
                     to="/"
-                    className="block rounded-2xl bg-slate-50 px-4 py-3 text-sm font-medium text-slate-700 transition hover:bg-slate-100"
+                    className="group flex items-center justify-between rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm font-semibold text-slate-700 shadow-sm transition duration-200 hover:-translate-y-0.5 hover:border-sky-200 hover:text-sky-700 hover:shadow-md focus:outline-none focus:ring-4 focus:ring-sky-100 active:translate-y-0"
                   >
-                    Ve khu chat
+                    <span className="inline-flex items-center gap-3">
+                      <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-sky-100 text-sky-700 transition group-hover:bg-sky-600 group-hover:text-white">
+                        <FontAwesomeIcon icon={faComments} />
+                      </span>
+                      Về khu chat
+                    </span>
+                    <FontAwesomeIcon
+                      icon={faArrowRight}
+                      className="text-xs text-slate-400 transition group-hover:text-sky-600"
+                    />
                   </Link>
+
                   <Link
                     to="/posts"
-                    className="block rounded-2xl bg-slate-50 px-4 py-3 text-sm font-medium text-slate-700 transition hover:bg-slate-100"
+                    className="group flex items-center justify-between rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm font-semibold text-slate-700 shadow-sm transition duration-200 hover:-translate-y-0.5 hover:border-indigo-200 hover:text-indigo-700 hover:shadow-md focus:outline-none focus:ring-4 focus:ring-indigo-100 active:translate-y-0"
                   >
-                    Ve bang tin
+                    <span className="inline-flex items-center gap-3">
+                      <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-violet-100 text-violet-700 transition group-hover:bg-violet-600 group-hover:text-white">
+                        <FontAwesomeIcon icon={faImage} />
+                      </span>
+                      Về bảng tin
+                    </span>
+                    <FontAwesomeIcon
+                      icon={faArrowRight}
+                      className="text-xs text-slate-400 transition group-hover:text-violet-600"
+                    />
                   </Link>
                 </div>
               </section>
-            </div>
+            </aside>
           </div>
-        </div>
+        </main>
       </div>
 
       <EditProfileModal
