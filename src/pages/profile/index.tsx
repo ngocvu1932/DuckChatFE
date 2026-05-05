@@ -5,16 +5,17 @@ import HeaderComp from '../home/component/header';
 import LoginPage from '../login';
 import {RootState} from '../../redux/store';
 import {setUser} from '../../redux/slices/userSlice';
-import {IComment, IPost} from '../posts/interface';
 import PostCard from '../posts/component/post-card';
 import ProfileHero from './component/profile-hero';
 import ProfileInfo from './component/profile-info';
 import EditProfileModal from './component/edit-profile-modal';
+import {IComment, IPost} from '../../api/post/interface';
 
 const myPostsSeed = [
   {
     _id: 'my-post-1',
-    content: 'Hom nay minh review tiep giao dien ProfilePage cho DuckChat. Muc tieu la gọn, ro, va de noi API that sau nay.',
+    content:
+      'Hom nay minh review tiep giao dien ProfilePage cho DuckChat. Muc tieu la gọn, ro, va de noi API that sau nay.',
     images: ['https://images.unsplash.com/photo-1494526585095-c41746248156?auto=format&fit=crop&w=1200&q=80'],
     likeCount: 12,
     commentCount: 1,
@@ -159,7 +160,12 @@ const ProfilePage = () => {
         <div className="h-full flex-1 overflow-y-auto px-4 py-5">
           <div className="mx-auto grid w-full max-w-7xl gap-5 xl:grid-cols-[1.7fr_1fr]">
             <div className="space-y-5">
-              <ProfileHero user={user} postCount={posts.length} imageCount={imageCount} onEdit={() => setIsEditOpen(true)} />
+              <ProfileHero
+                user={user}
+                postCount={posts.length}
+                imageCount={imageCount}
+                onEdit={() => setIsEditOpen(true)}
+              />
 
               <section className="rounded-[28px] border border-slate-200 bg-white p-6 shadow-sm">
                 <div className="flex items-center justify-between">
