@@ -73,6 +73,7 @@ const Content: React.FC<IContentProps> = ({selectedChat, isShowDetailChat, setSh
   const messageInputRef = useRef<HTMLInputElement | null>(null);
   const pickerRef = useRef<EmojiPickerRef | null>(null);
   const [filesImage, setFilesImage] = useState<File[]>([]);
+  const uploaderRef = useRef<any>(null);
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
@@ -219,6 +220,11 @@ const Content: React.FC<IContentProps> = ({selectedChat, isShowDetailChat, setSh
   const handleClickImage = () => {
     setIsMoreMenuOpen(false);
     setIsImagePickerOpen(true);
+
+    // 👇 vẫn nằm trong user event
+    requestAnimationFrame(() => {
+      uploaderRef.current?.open();
+    });
   };
 
   const handleCancelClickImage = () => {
@@ -558,6 +564,7 @@ const Content: React.FC<IContentProps> = ({selectedChat, isShowDetailChat, setSh
 
         {isImagePickerOpen && (
           <ImageUploader
+            ref={uploaderRef}
             onChange={(files) => {
               setFilesImage(files);
             }}
