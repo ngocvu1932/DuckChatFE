@@ -50,7 +50,7 @@ export interface IMessage {
   type: ETypeMessage;
   content: string;
   isSeen: string[];
-  mediaUrl: string;
+  mediaUrl: string[];
   createdAt?: string;
   updatedAt?: string;
   status?: TMessageStatus; // chỉ dùng cho tin nhắn mới tạo (chưa có _id)

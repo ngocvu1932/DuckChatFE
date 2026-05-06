@@ -35,9 +35,9 @@ const Chat: React.FC<IChatProps> = ({user, chat, onSelected, isChoose}) => {
   const avatar = chat.isGroupChat ? chat.groupImgUri : chat.user.find((userChat) => userChat._id !== user._id)?.avatar;
 
   const renderLastMessage = () => {
-    if (!chat.lastMessage?.content) {
-      return 'Chưa có tin nhắn';
-    }
+    // if (!chat.lastMessage?.content) {
+    //   return 'Chưa có tin nhắn';
+    // }
 
     if (chat.lastMessage?.type === ETypeMessage.Text || chat.lastMessage?.type === ETypeMessage.Emoji) {
       return chat.lastMessage?.content;
@@ -47,6 +47,8 @@ const Chat: React.FC<IChatProps> = ({user, chat, onSelected, isChoose}) => {
       return 'Đã gửi tin nhắn thoại';
     } else if (chat.lastMessage?.type === ETypeMessage.Video) {
       return 'Đã gửi video';
+    } else if (chat.lastMessage?.type === '') {
+      return 'Chưa có tin nhắn';
     } else {
       return 'Đã gửi một tệp tin';
     }

@@ -28,8 +28,9 @@ import messageAPIs from '../../../../api/message';
 import moment from 'moment';
 import {useAudioRecorder} from '../../../../hooks/useAudioRecorder';
 import mediaAPIs from '../../../../api/media';
-import AudioRecorderModal from './audio-recorder-modal';
 import EmojiPickerController, {EmojiPickerRef} from './components/emoji-picker';
+import AudioRecorderModal from './components/audio-recorder-modal';
+import ImageUploader from './components/image-uploader';
 
 interface IContentProps {
   selectedChat: IChatSelected | undefined;
@@ -52,6 +53,8 @@ const Content: React.FC<IContentProps> = ({selectedChat, isShowDetailChat, setSh
   const [hasMore, setHasMore] = useState(true);
   const [isMoreMenuOpen, setIsMoreMenuOpen] = useState(false);
   const [isRecorderOpen, setIsRecorderOpen] = useState(false);
+  const [isImagePickerOpen, setIsImagePickerOpen] = useState(false);
+  const [isSendingImage, setIsSendingImage] = useState(false);
   const [isUploadingAudio, setIsUploadingAudio] = useState(false);
   const [isPendingSendAudio, setIsPendingSendAudio] = useState(false);
   const [audioError, setAudioError] = useState('');
@@ -69,6 +72,7 @@ const Content: React.FC<IContentProps> = ({selectedChat, isShowDetailChat, setSh
   const {status, duration, audioBlob, startRecording, stopRecording, resetRecording} = useAudioRecorder();
   const messageInputRef = useRef<HTMLInputElement | null>(null);
   const pickerRef = useRef<EmojiPickerRef | null>(null);
+  const [filesImage, setFilesImage] = useState<File[]>([]);
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
@@ -94,6 +98,7 @@ const Content: React.FC<IContentProps> = ({selectedChat, isShowDetailChat, setSh
     stopRecording();
     setIsMoreMenuOpen(false);
     setIsRecorderOpen(false);
+    setIsImagePickerOpen(false);
     setIsPendingSendAudio(false);
     setAudioError('');
     resetRecording();
@@ -155,7 +160,7 @@ const Content: React.FC<IContentProps> = ({selectedChat, isShowDetailChat, setSh
     return textOnly.length > 0;
   };
 
-  const sendMessage = (type: ETypeMessage, content: string, mediaUrl = '') => {
+  const sendMessage = (type: ETypeMessage, content: string, mediaUrl?: string[]) => {
     const tempId = crypto.randomUUID();
 
     const newMessage: IMessage = {
@@ -166,7 +171,7 @@ const Content: React.FC<IContentProps> = ({selectedChat, isShowDetailChat, setSh
       type,
       content,
       isSeen: [],
-      mediaUrl,
+      mediaUrl: mediaUrl ?? [],
       createdAt: new Date().toISOString(),
       status: 'sending',
     };
@@ -211,6 +216,42 @@ const Content: React.FC<IContentProps> = ({selectedChat, isShowDetailChat, setSh
     await startRecording();
   };
 
+  const handleClickImage = () => {
+    setIsMoreMenuOpen(false);
+    setIsImagePickerOpen(true);
+  };
+
+  const handleCancelClickImage = () => {
+    setIsImagePickerOpen(false);
+  };
+
+  const handleSendImage = async () => {
+    // logic gửi ảnh sẽ được xử lý trong component ImageUploader, sau khi ảnh được upload thành công sẽ gọi onSend để gửi tin nhắn
+    setIsSendingImage(true);
+
+    try {
+      const formData = new FormData();
+
+      filesImage.forEach((file) => {
+        formData.append('images', file);
+      });
+
+      const res = await mediaAPIs.uploadImages(formData);
+
+      if (res.success) {
+        // gửi tin nhắn với type là image và content trống, mediaUrl là array các url ảnh
+        const imageUrls = res.data.urls;
+
+        sendMessage(ETypeMessage.Image, '', imageUrls);
+      }
+    } catch (error) {
+      console.log(error);
+    } finally {
+      setIsSendingImage(false);
+      setIsImagePickerOpen(false);
+    }
+  };
+
   const handleCancelRecording = () => {
     if (status === 'recording') {
       stopRecording();
@@ -239,7 +280,7 @@ const Content: React.FC<IContentProps> = ({selectedChat, isShowDetailChat, setSh
           return;
         }
 
-        sendMessage(ETypeMessage.Audio, res.data.url, res.data.url);
+        sendMessage(ETypeMessage.Audio, res.data.url);
         resetRecording();
         setIsPendingSendAudio(false);
         setIsRecorderOpen(false);
@@ -466,7 +507,7 @@ const Content: React.FC<IContentProps> = ({selectedChat, isShowDetailChat, setSh
                   <button
                     type="button"
                     className="flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-left text-sm font-semibold text-slate-700 transition hover:bg-indigo-50 hover:text-indigo-700"
-                    onClick={() => setIsMoreMenuOpen(false)}
+                    onClick={handleClickImage}
                   >
                     <span className="flex h-8 w-8 items-center justify-center rounded-xl bg-indigo-100 text-indigo-600">
                       <FontAwesomeIcon icon={faImage} />
@@ -476,9 +517,7 @@ const Content: React.FC<IContentProps> = ({selectedChat, isShowDetailChat, setSh
                 </div>
               )}
             </div>
-            <button type="button" title="Ảnh" className={actionButtonClass}>
-              <FontAwesomeIcon icon={faImage} />
-            </button>
+
             <button type="button" title="Quà tặng" className={`${actionButtonClass} hidden sm:flex`}>
               <FontAwesomeIcon icon={faGift} />
             </button>
@@ -516,6 +555,17 @@ const Content: React.FC<IContentProps> = ({selectedChat, isShowDetailChat, setSh
             <FontAwesomeIcon icon={canSendText ? faPaperPlane : faThumbsUp} />
           </button>
         </div>
+
+        {isImagePickerOpen && (
+          <ImageUploader
+            onChange={(files) => {
+              setFilesImage(files);
+            }}
+            onCancel={handleCancelClickImage}
+            onSend={handleSendImage}
+            isSending={isSendingImage}
+          />
+        )}
 
         <EmojiPickerController
           ref={pickerRef}

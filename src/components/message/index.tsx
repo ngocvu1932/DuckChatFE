@@ -19,6 +19,7 @@ import {formatMessageDateTime, formatTimeHHMM} from '../../utils/date';
 import AudioMessage from '../audio-message';
 import {useReactionBurst} from '../../hooks/useReactionBurst';
 import {ETypeMessage} from '../../types/enum';
+import ImageMessage from '../image-message';
 
 interface IMessageProps {
   message: IMessage;
@@ -105,7 +106,6 @@ const Message: React.FC<IMessageProps> = ({message, user, receiverId, showTime =
   const dispatch = useDispatch();
   const usersById = useSelector((state: RootState) => state.users.byId);
   const isSender = message.senderId === (user?._id ?? '');
-  const audioSrc = message.content || message.mediaUrl;
 
   const reactMessage = async (react: string) => {
     try {
@@ -210,7 +210,9 @@ const Message: React.FC<IMessageProps> = ({message, user, receiverId, showTime =
       case ETypeMessage.Emoji:
         return <p className="whitespace-pre-wrap break-words text-2xl leading-6">{message.content}</p>;
       case ETypeMessage.Audio:
-        return <AudioMessage src={audioSrc} isSender={isSender} />;
+        return <AudioMessage src={message.content} isSender={isSender} />;
+      case ETypeMessage.Image:
+        return <ImageMessage images={message.mediaUrl ?? []} />;
       default:
         return null;
     }
@@ -230,7 +232,7 @@ const Message: React.FC<IMessageProps> = ({message, user, receiverId, showTime =
           <div
             className={`relative flex w-full rounded-3xl shadow-sm transition-all duration-200 ${
               isSender
-                ? 'rounded-br-lg bg-gradient-to-br from-sky-500 to-indigo-500 text-white shadow-sky-100'
+                ? 'rounded-br-lg bg-gradient-to-br from-sky-400 to-indigo-400 text-white shadow-sky-100'
                 : 'rounded-bl-lg bg-white text-slate-800 ring-1 ring-slate-200'
             }`}
           >
