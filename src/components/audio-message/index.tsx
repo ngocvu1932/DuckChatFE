@@ -36,6 +36,15 @@ const AudioMessage = ({src, isSender}: IAudioMessageProps) => {
 
   const remaining = duration - currentTime;
 
+  const animationStyle = isPlaying
+    ? {
+        animationName: 'wave',
+        animationDuration: `${0.8 + Math.random() * 0.4}s`,
+        animationTimingFunction: 'ease-in-out',
+        animationIterationCount: 'infinite',
+      }
+    : {};
+
   return (
     <div className={`flex items-center gap-3 ${isSender ? 'text-white' : 'text-black'}`}>
       {/* audio hidden */}
@@ -76,7 +85,7 @@ const AudioMessage = ({src, isSender}: IAudioMessageProps) => {
             className="w-[2px] bg-current opacity-70"
             style={{
               height: `${h}%`,
-              animation: isPlaying ? `wave 1s ease-in-out infinite` : 'none',
+              ...animationStyle,
               animationDelay: `${i * 0.05}s`,
             }}
           />

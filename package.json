@@ -19,6 +19,7 @@
     "antd": "^5.23.2",
     "axios": "^1.15.0",
     "dotenv": "^16.4.7",
+    "emoji-picker-react": "^4.19.1",
     "i18next": "^24.2.1",
     "js-cookie": "^3.0.5",
     "moment": "^2.30.1",

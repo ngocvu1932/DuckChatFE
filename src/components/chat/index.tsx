@@ -4,6 +4,7 @@ import {formatTime} from '../../utils/date';
 import {FontAwesomeIcon} from '@fortawesome/react-fontawesome';
 import {faEllipsis, faThumbtack} from '@fortawesome/free-solid-svg-icons';
 import Avatar from '../avatar';
+import {ETypeMessage} from '../../types/enum';
 
 export interface IChatSelected {
   chatId: string;
@@ -38,13 +39,13 @@ const Chat: React.FC<IChatProps> = ({user, chat, onSelected, isChoose}) => {
       return 'Chưa có tin nhắn';
     }
 
-    if (chat.lastMessage?.type === 'text') {
+    if (chat.lastMessage?.type === ETypeMessage.Text || chat.lastMessage?.type === ETypeMessage.Emoji) {
       return chat.lastMessage?.content;
-    } else if (chat.lastMessage?.type === 'image') {
+    } else if (chat.lastMessage?.type === ETypeMessage.Image) {
       return 'Đã gửi ảnh';
-    } else if (chat.lastMessage?.type === 'audio') {
+    } else if (chat.lastMessage?.type === ETypeMessage.Audio) {
       return 'Đã gửi tin nhắn thoại';
-    } else if (chat.lastMessage?.type === 'video') {
+    } else if (chat.lastMessage?.type === ETypeMessage.Video) {
       return 'Đã gửi video';
     } else {
       return 'Đã gửi một tệp tin';

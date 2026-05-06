@@ -29,6 +29,7 @@ import moment from 'moment';
 import {useAudioRecorder} from '../../../../hooks/useAudioRecorder';
 import mediaAPIs from '../../../../api/media';
 import AudioRecorderModal from './audio-recorder-modal';
+import EmojiPickerController, {EmojiPickerRef} from './components/emoji-picker';
 
 interface IContentProps {
   selectedChat: IChatSelected | undefined;
@@ -39,23 +40,6 @@ interface IContentProps {
 
 const actionButtonClass =
   'flex h-10 w-10 items-center justify-center rounded-2xl text-sky-600 transition-all duration-200 hover:-translate-y-0.5 hover:bg-sky-50 hover:text-sky-700 focus:outline-none focus-visible:ring-4 focus-visible:ring-sky-100 active:scale-95';
-
-const getAudioUrlFromResponse = (res: unknown): string => {
-  const response = res as Record<string, unknown>;
-  const data = response.data as Record<string, unknown> | undefined;
-
-  return (
-    (data?.url as string | undefined) ??
-    (data?.link as string | undefined) ??
-    (data?.audioUrl as string | undefined) ??
-    (data?.mediaUrl as string | undefined) ??
-    (response.url as string | undefined) ??
-    (response.link as string | undefined) ??
-    (response.audioUrl as string | undefined) ??
-    (response.mediaUrl as string | undefined) ??
-    ''
-  );
-};
 
 const Content: React.FC<IContentProps> = ({selectedChat, isShowDetailChat, setShowDetailChat, onBackToList}) => {
   const user = useSelector((state: RootState) => state.user.user);
@@ -83,6 +67,8 @@ const Content: React.FC<IContentProps> = ({selectedChat, isShowDetailChat, setSh
   const pendingScrollRestoreRef = useRef<{scrollHeight: number; scrollTop: number} | null>(null);
   const [isLoadingMore, setIsLoadingMore] = useState(false);
   const {status, duration, audioBlob, startRecording, stopRecording, resetRecording} = useAudioRecorder();
+  const messageInputRef = useRef<HTMLInputElement | null>(null);
+  const pickerRef = useRef<EmojiPickerRef | null>(null);
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
@@ -103,14 +89,6 @@ const Content: React.FC<IContentProps> = ({selectedChat, isShowDetailChat, setSh
       stopRecording();
     };
   }, []);
-
-  // useEffect(() => {
-  //   if (selectedChat?.type === EChatType.BOT) {
-  //     if (setShowDetailChat) {
-  //       setShowDetailChat(false);
-  //     }
-  //   }
-  // }, [selectedChat]);
 
   useEffect(() => {
     stopRecording();
@@ -168,7 +146,16 @@ const Content: React.FC<IContentProps> = ({selectedChat, isShowDetailChat, setSh
     pendingScrollRestoreRef.current = null;
   }, [messages.length]);
 
-  const sendMessage = (type: string, content: string, mediaUrl = '') => {
+  const hasText = (str: string): boolean => {
+    if (!str.trim()) return false;
+
+    // loại bỏ emoji
+    const textOnly = str.replace(/\p{Extended_Pictographic}/gu, '').trim();
+
+    return textOnly.length > 0;
+  };
+
+  const sendMessage = (type: ETypeMessage, content: string, mediaUrl = '') => {
     const tempId = crypto.randomUUID();
 
     const newMessage: IMessage = {
@@ -209,7 +196,10 @@ const Content: React.FC<IContentProps> = ({selectedChat, isShowDetailChat, setSh
       return;
     }
 
-    sendMessage('text', type === ETypeMessage.Emoji ? '\u{1F44D}' : messageInput);
+    const content = type === ETypeMessage.Text ? messageInput : '\u{1F44D}';
+    const typeMessage = hasText(content) ? ETypeMessage.Text : ETypeMessage.Emoji;
+
+    sendMessage(typeMessage, content);
     setMessageInput('');
   };
 
@@ -241,18 +231,19 @@ const Content: React.FC<IContentProps> = ({selectedChat, isShowDetailChat, setSh
 
     try {
       const res = await mediaAPIs.uploadAudio(formData);
-      const audioUrl = getAudioUrlFromResponse(res);
 
-      if (!audioUrl) {
-        setAudioError('Khong tim thay link audio tu server.');
+      if (res.success) {
+        if (!res.data || !res.data.url) {
+          setAudioError('Không tìm thấy link âm thanh từ máy chủ.');
+          setIsPendingSendAudio(false);
+          return;
+        }
+
+        sendMessage(ETypeMessage.Audio, res.data.url, res.data.url);
+        resetRecording();
         setIsPendingSendAudio(false);
-        return;
+        setIsRecorderOpen(false);
       }
-
-      sendMessage('audio', audioUrl, audioUrl);
-      resetRecording();
-      setIsPendingSendAudio(false);
-      setIsRecorderOpen(false);
     } catch (error) {
       console.log(error);
       setIsPendingSendAudio(false);
@@ -494,6 +485,7 @@ const Content: React.FC<IContentProps> = ({selectedChat, isShowDetailChat, setSh
           </div>
 
           <TextInput
+            ref={messageInputRef}
             onKeyDown={(e) => {
               if (e.key === 'Enter') {
                 handleSendMessage(ETypeMessage.Text);
@@ -504,7 +496,11 @@ const Content: React.FC<IContentProps> = ({selectedChat, isShowDetailChat, setSh
             placeholder="Nhập nội dung tin nhắn..."
             className="h-12 min-w-0 flex-1"
             rounded="full"
-            suffix={<FontAwesomeIcon icon={faFaceKissWinkHeart} />}
+            suffix={
+              <div className="px-2.5 py-1" onClick={() => pickerRef.current?.toggle()}>
+                <FontAwesomeIcon icon={faFaceKissWinkHeart} />
+              </div>
+            }
           />
 
           <button
@@ -520,6 +516,27 @@ const Content: React.FC<IContentProps> = ({selectedChat, isShowDetailChat, setSh
             <FontAwesomeIcon icon={canSendText ? faPaperPlane : faThumbsUp} />
           </button>
         </div>
+
+        <EmojiPickerController
+          ref={pickerRef}
+          onSelectEmoji={(emoji) => {
+            const input = messageInputRef.current;
+            if (!input) return;
+
+            const start = input.selectionStart ?? 0;
+            const end = input.selectionEnd ?? 0;
+
+            const newValue = messageInput.slice(0, start) + emoji + messageInput.slice(end);
+
+            setMessageInput(newValue);
+
+            requestAnimationFrame(() => {
+              input.focus();
+              const cursor = start + emoji.length;
+              input.setSelectionRange(cursor, cursor);
+            });
+          }}
+        />
 
         {isRecorderOpen && (
           <AudioRecorderModal

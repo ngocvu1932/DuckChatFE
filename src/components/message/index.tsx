@@ -1,4 +1,4 @@
-import React, {useCallback, useEffect, useMemo, useRef, useState} from 'react';
+import React, {useMemo} from 'react';
 import {
   IMessage,
   IReactMessage,
@@ -17,6 +17,8 @@ import {FontAwesomeIcon} from '@fortawesome/react-fontawesome';
 import {faX} from '@fortawesome/free-solid-svg-icons';
 import {formatMessageDateTime, formatTimeHHMM} from '../../utils/date';
 import AudioMessage from '../audio-message';
+import {useReactionBurst} from '../../hooks/useReactionBurst';
+import {ETypeMessage} from '../../types/enum';
 
 interface IMessageProps {
   message: IMessage;
@@ -34,22 +36,6 @@ interface IReactUI {
   react: string;
 }
 
-interface IReactionBurstParticle {
-  id: string;
-  burstId: number;
-  icon: string;
-  x: number;
-  y: number;
-  size: number;
-  rotation: number;
-  delay: number;
-}
-
-interface IReactionButtonProps {
-  icon: string;
-  onReact: (react: string) => void;
-}
-
 type BurstParticleStyle = React.CSSProperties & {
   '--burst-x': string;
   '--burst-y': string;
@@ -58,57 +44,10 @@ type BurstParticleStyle = React.CSSProperties & {
   '--burst-size': string;
 };
 
-const BURST_DURATION = 680;
-const BURST_PARTICLE_COUNT = 8;
-
-const createReactionBurst = (icon: string, burstId: number): IReactionBurstParticle[] => {
-  const baseRotation = Math.random() * 360;
-
-  return Array.from({length: BURST_PARTICLE_COUNT}, (_, index) => {
-    const angle = ((360 / BURST_PARTICLE_COUNT) * index + baseRotation + (Math.random() * 34 - 17)) * (Math.PI / 180);
-    const distance = 22 + Math.random() * 22;
-
-    return {
-      id: `${burstId}-${index}-${Date.now()}`,
-      burstId,
-      icon,
-      x: Math.cos(angle) * distance,
-      y: Math.sin(angle) * distance,
-      size: 10 + Math.random() * 7,
-      rotation: Math.random() * 140 - 70,
-      delay: Math.random() * 45,
-    };
-  });
-};
-
-const useReactionBurst = () => {
-  const [particles, setParticles] = useState<IReactionBurstParticle[]>([]);
-  const [popKey, setPopKey] = useState(0);
-  const burstIdRef = useRef(0);
-  const timersRef = useRef<ReturnType<typeof setTimeout>[]>([]);
-
-  useEffect(() => {
-    return () => {
-      timersRef.current.forEach(clearTimeout);
-    };
-  }, []);
-
-  const triggerBurst = useCallback((icon: string) => {
-    const burstId = burstIdRef.current + 1;
-    burstIdRef.current = burstId;
-
-    setPopKey((current) => current + 1);
-    setParticles((current) => [...current, ...createReactionBurst(icon, burstId)]);
-
-    const timer = setTimeout(() => {
-      setParticles((current) => current.filter((particle) => particle.burstId !== burstId));
-    }, BURST_DURATION + 120);
-
-    timersRef.current.push(timer);
-  }, []);
-
-  return {particles, popKey, triggerBurst};
-};
+interface IReactionButtonProps {
+  icon: string;
+  onReact: (react: string) => void;
+}
 
 const ReactionBurstButton: React.FC<IReactionButtonProps> = ({icon, onReact}) => {
   const {particles, popKey, triggerBurst} = useReactionBurst();
@@ -166,7 +105,6 @@ const Message: React.FC<IMessageProps> = ({message, user, receiverId, showTime =
   const dispatch = useDispatch();
   const usersById = useSelector((state: RootState) => state.users.byId);
   const isSender = message.senderId === (user?._id ?? '');
-  const isAudioMessage = message.type === 'audio';
   const audioSrc = message.content || message.mediaUrl;
 
   const reactMessage = async (react: string) => {
@@ -265,6 +203,19 @@ const Message: React.FC<IMessageProps> = ({message, user, receiverId, showTime =
     );
   };
 
+  const renderContent = () => {
+    switch (message.type) {
+      case ETypeMessage.Text:
+        return <p className="whitespace-pre-wrap break-words text-sm leading-6">{message.content}</p>;
+      case ETypeMessage.Emoji:
+        return <p className="whitespace-pre-wrap break-words text-2xl leading-6">{message.content}</p>;
+      case ETypeMessage.Audio:
+        return <AudioMessage src={audioSrc} isSender={isSender} />;
+      default:
+        return null;
+    }
+  };
+
   return (
     <div className="flex w-full flex-col">
       {showDateTime && (
@@ -285,11 +236,7 @@ const Message: React.FC<IMessageProps> = ({message, user, receiverId, showTime =
           >
             <div className="group relative">
               <div className={`flex flex-col ${isSender ? 'items-end' : 'items-start'} px-4 py-2.5`}>
-                {isAudioMessage ? (
-                  <AudioMessage src={audioSrc} isSender={isSender} />
-                ) : (
-                  <p className="whitespace-pre-wrap break-words text-sm leading-6">{message.content}</p>
-                )}
+                {renderContent()}
 
                 {showTime && (
                   <p className={`pt-1 text-[11px] font-medium ${isSender ? 'text-white/75' : 'text-slate-400'}`}>

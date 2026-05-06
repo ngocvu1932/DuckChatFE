@@ -1,3 +1,5 @@
+import {ETypeMessage} from '../../types/enum';
+
 export interface IMessageResponse {
   success: boolean;
   message: string;
@@ -45,7 +47,7 @@ export interface IMessage {
   chatId: string;
   senderId: string;
   receiverId: string;
-  type: string;
+  type: ETypeMessage;
   content: string;
   isSeen: string[];
   mediaUrl: string;
