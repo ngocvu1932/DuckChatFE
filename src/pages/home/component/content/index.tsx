@@ -1,5 +1,5 @@
 import React, {useEffect, useLayoutEffect, useMemo, useRef, useState} from 'react';
-import {EChatType, IChatSelected} from '../../../../components/chat';
+import {IChatSelected} from '../../../../components/chat';
 import Avatar from '../../../../components/avatar';
 import {FontAwesomeIcon} from '@fortawesome/react-fontawesome';
 import {
@@ -8,6 +8,7 @@ import {
   faFaceKissWinkHeart,
   faGift,
   faImage,
+  faMicrophone,
   faPaperPlane,
   faPhone,
   faPlus,
@@ -25,6 +26,9 @@ import {addMessage, addMessages, setMessages, updateMessage} from '../../../../r
 import {IMessage} from '../../../../api/message/interface';
 import messageAPIs from '../../../../api/message';
 import moment from 'moment';
+import {useAudioRecorder} from '../../../../hooks/useAudioRecorder';
+import mediaAPIs from '../../../../api/media';
+import AudioRecorderModal from './audio-recorder-modal';
 
 interface IContentProps {
   selectedChat: IChatSelected | undefined;
@@ -36,6 +40,23 @@ interface IContentProps {
 const actionButtonClass =
   'flex h-10 w-10 items-center justify-center rounded-2xl text-sky-600 transition-all duration-200 hover:-translate-y-0.5 hover:bg-sky-50 hover:text-sky-700 focus:outline-none focus-visible:ring-4 focus-visible:ring-sky-100 active:scale-95';
 
+const getAudioUrlFromResponse = (res: unknown): string => {
+  const response = res as Record<string, unknown>;
+  const data = response.data as Record<string, unknown> | undefined;
+
+  return (
+    (data?.url as string | undefined) ??
+    (data?.link as string | undefined) ??
+    (data?.audioUrl as string | undefined) ??
+    (data?.mediaUrl as string | undefined) ??
+    (response.url as string | undefined) ??
+    (response.link as string | undefined) ??
+    (response.audioUrl as string | undefined) ??
+    (response.mediaUrl as string | undefined) ??
+    ''
+  );
+};
+
 const Content: React.FC<IContentProps> = ({selectedChat, isShowDetailChat, setShowDetailChat, onBackToList}) => {
   const user = useSelector((state: RootState) => state.user.user);
   const messageByChat = useSelector((state: RootState) => state.message.messagesByChatId);
@@ -45,9 +66,15 @@ const Content: React.FC<IContentProps> = ({selectedChat, isShowDetailChat, setSh
   const scrollRef = useRef<HTMLDivElement>(null);
   const [nextCursor, setNextCursor] = useState<string | null>(null);
   const [hasMore, setHasMore] = useState(true);
+  const [isMoreMenuOpen, setIsMoreMenuOpen] = useState(false);
+  const [isRecorderOpen, setIsRecorderOpen] = useState(false);
+  const [isUploadingAudio, setIsUploadingAudio] = useState(false);
+  const [isPendingSendAudio, setIsPendingSendAudio] = useState(false);
+  const [audioError, setAudioError] = useState('');
   const messages = messageByChat[selectedChat?.chatId ?? ''] ?? [];
   const displayedMessages = useMemo(() => [...messages].reverse(), [messages]);
   const isAtBottomRef = useRef(true);
+  const moreMenuRef = useRef<HTMLDivElement>(null);
   const previousNewestMessageRef = useRef<{chatId: string; messageKey: string}>({
     chatId: '',
     messageKey: '',
@@ -55,12 +82,44 @@ const Content: React.FC<IContentProps> = ({selectedChat, isShowDetailChat, setSh
   const loadingMorePromiseRef = useRef<Promise<void> | null>(null);
   const pendingScrollRestoreRef = useRef<{scrollHeight: number; scrollTop: number} | null>(null);
   const [isLoadingMore, setIsLoadingMore] = useState(false);
+  const {status, duration, audioBlob, startRecording, stopRecording, resetRecording} = useAudioRecorder();
 
   useEffect(() => {
-    if (selectedChat?.type === EChatType.BOT) {
-      setShowDetailChat && setShowDetailChat(false);
-    }
-  }, [selectedChat]);
+    const handleClickOutside = (event: MouseEvent) => {
+      if (!moreMenuRef.current?.contains(event.target as Node)) {
+        setIsMoreMenuOpen(false);
+      }
+    };
+
+    document.addEventListener('mousedown', handleClickOutside);
+
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, []);
+
+  useEffect(() => {
+    return () => {
+      stopRecording();
+    };
+  }, []);
+
+  // useEffect(() => {
+  //   if (selectedChat?.type === EChatType.BOT) {
+  //     if (setShowDetailChat) {
+  //       setShowDetailChat(false);
+  //     }
+  //   }
+  // }, [selectedChat]);
+
+  useEffect(() => {
+    stopRecording();
+    setIsMoreMenuOpen(false);
+    setIsRecorderOpen(false);
+    setIsPendingSendAudio(false);
+    setAudioError('');
+    resetRecording();
+  }, [selectedChat?.chatId]);
 
   useEffect(() => {
     if ((selectedChat?.chatId ?? '') != '') {
@@ -109,11 +168,7 @@ const Content: React.FC<IContentProps> = ({selectedChat, isShowDetailChat, setSh
     pendingScrollRestoreRef.current = null;
   }, [messages.length]);
 
-  const handleSendMessage = async (type: ETypeMessage) => {
-    if (messageInput.trim() === '' && type === ETypeMessage.Text) {
-      return;
-    }
-
+  const sendMessage = (type: string, content: string, mediaUrl = '') => {
     const tempId = crypto.randomUUID();
 
     const newMessage: IMessage = {
@@ -121,10 +176,10 @@ const Content: React.FC<IContentProps> = ({selectedChat, isShowDetailChat, setSh
       chatId: selectedChat?.chatId ?? '',
       senderId: user?._id ?? '',
       receiverId: selectedChat?.chatUserId ?? '',
-      type: 'text',
-      content: type === ETypeMessage.Emoji ? '\u{1F44D}' : messageInput,
+      type,
+      content,
       isSeen: [],
-      mediaUrl: '',
+      mediaUrl,
       createdAt: new Date().toISOString(),
       status: 'sending',
     };
@@ -141,14 +196,90 @@ const Content: React.FC<IContentProps> = ({selectedChat, isShowDetailChat, setSh
       );
     });
 
-    setMessageInput('');
-
     dispatch(
       updateLastMessage({
         chatId: selectedChat?.chatId ?? '',
         message: newMessage,
       }),
     );
+  };
+
+  const handleSendMessage = async (type: ETypeMessage) => {
+    if (messageInput.trim() === '' && type === ETypeMessage.Text) {
+      return;
+    }
+
+    sendMessage('text', type === ETypeMessage.Emoji ? '\u{1F44D}' : messageInput);
+    setMessageInput('');
+  };
+
+  const handleOpenRecorder = async () => {
+    setIsMoreMenuOpen(false);
+    setAudioError('');
+    setIsRecorderOpen(true);
+    resetRecording();
+    await startRecording();
+  };
+
+  const handleCancelRecording = () => {
+    if (status === 'recording') {
+      stopRecording();
+    }
+
+    resetRecording();
+    setIsPendingSendAudio(false);
+    setAudioError('');
+    setIsRecorderOpen(false);
+  };
+
+  const uploadAndSendAudio = async (blob: Blob) => {
+    setIsUploadingAudio(true);
+    setAudioError('');
+
+    const formData = new FormData();
+    formData.append('file', blob, `voice-${Date.now()}.webm`);
+
+    try {
+      const res = await mediaAPIs.uploadAudio(formData);
+      const audioUrl = getAudioUrlFromResponse(res);
+
+      if (!audioUrl) {
+        setAudioError('Khong tim thay link audio tu server.');
+        setIsPendingSendAudio(false);
+        return;
+      }
+
+      sendMessage('audio', audioUrl, audioUrl);
+      resetRecording();
+      setIsPendingSendAudio(false);
+      setIsRecorderOpen(false);
+    } catch (error) {
+      console.log(error);
+      setIsPendingSendAudio(false);
+      setAudioError('Gui ghi am that bai. Vui long thu lai.');
+    } finally {
+      setIsUploadingAudio(false);
+    }
+  };
+
+  useEffect(() => {
+    if (isPendingSendAudio && audioBlob && !isUploadingAudio) {
+      uploadAndSendAudio(audioBlob);
+    }
+  }, [audioBlob, isPendingSendAudio, isUploadingAudio]);
+
+  const handleSendAudio = async () => {
+    if (isUploadingAudio) return;
+
+    if (status === 'recording') {
+      setIsPendingSendAudio(true);
+      stopRecording();
+      return;
+    }
+
+    if (audioBlob) {
+      await uploadAndSendAudio(audioBlob);
+    }
   };
 
   const getMessages = async (cursor?: string) => {
@@ -230,7 +361,7 @@ const Content: React.FC<IContentProps> = ({selectedChat, isShowDetailChat, setSh
 
   return (
     <div className="flex min-h-0 w-full bg-white">
-      <div className={`flex min-w-0 flex-1 flex-col ${isShowDetailChat ? 'rounded-bl-3xl' : 'rounded-b-3xl'}`}>
+      <div className={`relative flex min-w-0 flex-1 flex-col ${isShowDetailChat ? 'rounded-bl-3xl' : 'rounded-b-3xl'}`}>
         <div className="flex shrink-0 items-center justify-between border-b border-slate-200/80 bg-white/95 px-4 py-3 backdrop-blur sm:px-5">
           <div className="flex min-w-0 items-center gap-3">
             <button type="button" title="Quay lai" className={`${actionButtonClass} md:hidden`} onClick={onBackToList}>
@@ -246,26 +377,26 @@ const Content: React.FC<IContentProps> = ({selectedChat, isShowDetailChat, setSh
             </div>
           </div>
 
-          {selectedChat.type !== EChatType.BOT && (
-            <div className="flex items-center gap-1 sm:gap-2">
-              <button type="button" title="Goi thoai" className={actionButtonClass}>
-                <FontAwesomeIcon icon={faPhone} />
-              </button>
-              <button type="button" title="Goi video" className={actionButtonClass}>
-                <FontAwesomeIcon icon={faVideo} />
-              </button>
-              <button
-                type="button"
-                title="Thong tin"
-                className={`${actionButtonClass} ${isShowDetailChat ? 'bg-sky-50 text-sky-700' : ''}`}
-                onClick={() => {
-                  setShowDetailChat && setShowDetailChat(!isShowDetailChat);
-                }}
-              >
-                <FontAwesomeIcon icon={faCircleInfo} />
-              </button>
-            </div>
-          )}
+          <div className="flex items-center gap-1 sm:gap-2">
+            <button type="button" title="Gọi thoại" className={actionButtonClass}>
+              <FontAwesomeIcon icon={faPhone} />
+            </button>
+            <button type="button" title="Gọi video" className={actionButtonClass}>
+              <FontAwesomeIcon icon={faVideo} />
+            </button>
+            <button
+              type="button"
+              title="Thông tin"
+              className={`${actionButtonClass} ${isShowDetailChat ? 'bg-sky-50 text-sky-700' : ''}`}
+              onClick={() => {
+                if (setShowDetailChat) {
+                  setShowDetailChat(!isShowDetailChat);
+                }
+              }}
+            >
+              <FontAwesomeIcon icon={faCircleInfo} />
+            </button>
+          </div>
         </div>
 
         <div
@@ -319,9 +450,41 @@ const Content: React.FC<IContentProps> = ({selectedChat, isShowDetailChat, setSh
 
         <div className="flex shrink-0 items-center gap-2 border-t border-slate-200/80 bg-white/95 px-3 py-3 backdrop-blur sm:gap-3 sm:px-5">
           <div className="flex items-center gap-1">
-            <button type="button" title="Them" className={actionButtonClass}>
-              <FontAwesomeIcon icon={faPlus} />
-            </button>
+            <div ref={moreMenuRef} className="relative">
+              <button
+                type="button"
+                title="Thêm"
+                className={`${actionButtonClass} ${isMoreMenuOpen ? 'bg-sky-50 text-sky-700' : ''}`}
+                onClick={() => setIsMoreMenuOpen((current) => !current)}
+              >
+                <FontAwesomeIcon icon={faPlus} />
+              </button>
+
+              {isMoreMenuOpen && (
+                <div className="absolute bottom-12 left-0 z-50 w-44 rounded-2xl border border-slate-200 bg-white p-2 shadow-xl shadow-slate-200/80">
+                  <button
+                    type="button"
+                    className="flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-left text-sm font-semibold text-slate-700 transition hover:bg-sky-50 hover:text-sky-700"
+                    onClick={handleOpenRecorder}
+                  >
+                    <span className="flex h-8 w-8 items-center justify-center rounded-xl bg-sky-100 text-sky-600">
+                      <FontAwesomeIcon icon={faMicrophone} />
+                    </span>
+                    Ghi âm
+                  </button>
+                  <button
+                    type="button"
+                    className="flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-left text-sm font-semibold text-slate-700 transition hover:bg-indigo-50 hover:text-indigo-700"
+                    onClick={() => setIsMoreMenuOpen(false)}
+                  >
+                    <span className="flex h-8 w-8 items-center justify-center rounded-xl bg-indigo-100 text-indigo-600">
+                      <FontAwesomeIcon icon={faImage} />
+                    </span>
+                    Gửi hình
+                  </button>
+                </div>
+              )}
+            </div>
             <button type="button" title="Ảnh" className={actionButtonClass}>
               <FontAwesomeIcon icon={faImage} />
             </button>
@@ -357,6 +520,20 @@ const Content: React.FC<IContentProps> = ({selectedChat, isShowDetailChat, setSh
             <FontAwesomeIcon icon={canSendText ? faPaperPlane : faThumbsUp} />
           </button>
         </div>
+
+        {isRecorderOpen && (
+          <AudioRecorderModal
+            status={status}
+            duration={duration}
+            audioBlob={audioBlob}
+            audioError={audioError}
+            isUploadingAudio={isUploadingAudio}
+            isPendingSendAudio={isPendingSendAudio}
+            onStopRecording={stopRecording}
+            onCancel={handleCancelRecording}
+            onSend={handleSendAudio}
+          />
+        )}
       </div>
 
       {isShowDetailChat && (

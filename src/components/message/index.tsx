@@ -16,6 +16,7 @@ import {listReact} from './data';
 import {FontAwesomeIcon} from '@fortawesome/react-fontawesome';
 import {faX} from '@fortawesome/free-solid-svg-icons';
 import {formatMessageDateTime, formatTimeHHMM} from '../../utils/date';
+import AudioMessage from '../audio-message';
 
 interface IMessageProps {
   message: IMessage;
@@ -124,7 +125,10 @@ const ReactionBurstButton: React.FC<IReactionButtonProps> = ({icon, onReact}) =>
       onClick={handleClick}
       aria-label={`React with ${icon}`}
     >
-      <span key={popKey} className="relative z-10 block will-change-transform [animation:reaction-pop_520ms_cubic-bezier(.2,.9,.2,1)]">
+      <span
+        key={popKey}
+        className="relative z-10 block will-change-transform [animation:reaction-pop_520ms_cubic-bezier(.2,.9,.2,1)]"
+      >
         {icon}
       </span>
 
@@ -159,9 +163,11 @@ const ReactionBurstButton: React.FC<IReactionButtonProps> = ({icon, onReact}) =>
 };
 
 const Message: React.FC<IMessageProps> = ({message, user, receiverId, showTime = false, showDateTime = false}) => {
-  const isSender = message.senderId === (user?._id ?? '');
   const dispatch = useDispatch();
   const usersById = useSelector((state: RootState) => state.users.byId);
+  const isSender = message.senderId === (user?._id ?? '');
+  const isAudioMessage = message.type === 'audio';
+  const audioSrc = message.content || message.mediaUrl;
 
   const reactMessage = async (react: string) => {
     try {
@@ -279,7 +285,11 @@ const Message: React.FC<IMessageProps> = ({message, user, receiverId, showTime =
           >
             <div className="group relative">
               <div className={`flex flex-col ${isSender ? 'items-end' : 'items-start'} px-4 py-2.5`}>
-                <p className="whitespace-pre-wrap break-words text-sm leading-6">{message.content}</p>
+                {isAudioMessage ? (
+                  <AudioMessage src={audioSrc} isSender={isSender} />
+                ) : (
+                  <p className="whitespace-pre-wrap break-words text-sm leading-6">{message.content}</p>
+                )}
 
                 {showTime && (
                   <p className={`pt-1 text-[11px] font-medium ${isSender ? 'text-white/75' : 'text-slate-400'}`}>
@@ -288,9 +298,7 @@ const Message: React.FC<IMessageProps> = ({message, user, receiverId, showTime =
                 )}
               </div>
 
-              <div
-                className={`absolute -bottom-10 ${isSender ? 'right-0' : 'left-0'} z-40 hidden group-hover:flex`}
-              >
+              <div className={`absolute -bottom-10 ${isSender ? 'right-0' : 'left-0'} z-40 hidden group-hover:flex`}>
                 <div className="flex items-center gap-1 rounded-2xl border border-slate-200 bg-white p-1.5 text-base shadow-xl shadow-slate-200/80">
                   {listReact.map((value) => (
                     <ReactionBurstButton key={value.id} icon={value.icon} onReact={reactMessage} />

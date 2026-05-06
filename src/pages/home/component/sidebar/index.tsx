@@ -1,6 +1,6 @@
 import {useMemo, useState} from 'react';
 import {IChat} from '../../../../api/chat/interface';
-import Chat, {EChatType, IChatSelected} from '../../../../components/chat';
+import Chat, {IChatSelected} from '../../../../components/chat';
 import LoadingSpinner from '../../../../components/loading-spinner';
 import TextInput from '../../../../components/text-input';
 import {IUser} from '../../../../api/auth/interface';
@@ -95,7 +95,6 @@ const Sidebar: React.FC<ISidebarProps> = ({user, chatData, chatSelected, isLoadi
               user={user}
               isChoose={chat._id === selectedChat ? true : false}
               key={chat._id}
-              type={EChatType.CHAT}
               chat={chat}
               onSelected={(chat: IChatSelected) => {
                 chatSelected && chatSelected(chat);

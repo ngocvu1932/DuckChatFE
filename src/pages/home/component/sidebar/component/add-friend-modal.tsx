@@ -6,7 +6,7 @@ import authAPIs from '../../../../../api/auth';
 import {IUser} from '../../../../../api/auth/interface';
 import chatAPIs from '../../../../../api/chat';
 import TextInput from '../../../../../components/text-input';
-import {EChatType, IChatSelected} from '../../../../../components/chat';
+import {IChatSelected} from '../../../../../components/chat';
 import {addChat} from '../../../../../redux/slices/chatSlice';
 import Modal from '../../../../../components/modal';
 
@@ -100,7 +100,7 @@ const AddFriendModal: React.FC<IAddFriendModalProps> = ({isOpen, onClose, curren
 
       const chat = response.data;
       const chatInfo = chat.user.find((userChat) => userChat._id !== currentUserId);
-      const avatar = chat.isGroupChat ? chat.groupImgUri : chatInfo?.avatar ?? '';
+      const avatar = chat.isGroupChat ? chat.groupImgUri : (chatInfo?.avatar ?? '');
 
       if (!response.isExisting) {
         dispatch(addChat(chat));
@@ -112,7 +112,6 @@ const AddFriendModal: React.FC<IAddFriendModalProps> = ({isOpen, onClose, curren
         chatName: chatInfo?.fullname ?? user.fullname,
         chatUri: avatar || user.avatar || '',
         online: chatInfo?.online,
-        type: EChatType.CHAT,
       });
 
       handleClose();

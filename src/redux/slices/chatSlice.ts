@@ -43,6 +43,7 @@ const chatSlice = createSlice({
           sender: message.senderId,
           content: message.content,
           timestamp: message.createdAt ?? new Date().toISOString(),
+          type: message.type,
         },
       };
 

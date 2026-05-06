@@ -35,6 +35,7 @@ export interface IChat {
     sender: string;
     content: string;
     timestamp: string;
+    type: string;
   };
 }
 

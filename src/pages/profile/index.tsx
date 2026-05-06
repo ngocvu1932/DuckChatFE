@@ -21,8 +21,6 @@ import EditProfileModal from './component/edit-profile-modal';
 import {IPost} from '../../api/post/interface';
 import postAPIs from '../../api/post';
 
-const POST_LIMIT = 20;
-
 const ProfilePage = () => {
   const user = useSelector((state: RootState) => state.user.user);
   const dispatch = useDispatch();
@@ -57,7 +55,7 @@ const ProfilePage = () => {
     setPostError('');
 
     try {
-      const res = await postAPIs.getPostsByUserId(userId, POST_LIMIT, cursor);
+      const res = await postAPIs.getPostsByUserId(userId, 20, cursor);
 
       if (res.success) {
         setPosts((prev) => (isLoadMore ? [...prev, ...res.data] : res.data));
@@ -233,8 +231,8 @@ const ProfilePage = () => {
                       </p>
                     </div>
                   )}
-
-                  {/* {!isLoadingPosts && nextCursor && (
+                  {/* 
+                  {!isLoadingPosts && nextCursor && (
                     <div className="flex justify-center">
                       <button
                         type="button"

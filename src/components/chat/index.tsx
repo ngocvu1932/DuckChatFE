@@ -5,29 +5,22 @@ import {FontAwesomeIcon} from '@fortawesome/react-fontawesome';
 import {faEllipsis, faThumbtack} from '@fortawesome/free-solid-svg-icons';
 import Avatar from '../avatar';
 
-export enum EChatType {
-  CHAT = 'Chat',
-  BOT = 'Bot',
-}
-
 export interface IChatSelected {
   chatId: string;
   chatUserId: string;
   chatName: string;
   chatUri: string;
   online?: boolean;
-  type?: EChatType;
 }
 
 interface IChatProps {
   user: any;
-  type?: EChatType;
   chat: IChat | undefined;
   onSelected?: (chat: IChatSelected) => void;
   isChoose?: boolean;
 }
 
-const Chat: React.FC<IChatProps> = ({user, type = EChatType.CHAT, chat, onSelected, isChoose}) => {
+const Chat: React.FC<IChatProps> = ({user, chat, onSelected, isChoose}) => {
   if (!chat) {
     return null;
   }
@@ -39,7 +32,24 @@ const Chat: React.FC<IChatProps> = ({user, type = EChatType.CHAT, chat, onSelect
   const chatInfo = chat.user.find((userChat: IUserChat) => userChat._id !== user._id);
   const online = chat.isGroupChat ? false : chat.user.find((userChat) => userChat._id !== user._id)?.online;
   const avatar = chat.isGroupChat ? chat.groupImgUri : chat.user.find((userChat) => userChat._id !== user._id)?.avatar;
-  const lastMessage = chat.lastMessage?.content ? chat.lastMessage.content : 'Chua co tin nhan';
+
+  const renderLastMessage = () => {
+    if (!chat.lastMessage?.content) {
+      return 'Chưa có tin nhắn';
+    }
+
+    if (chat.lastMessage?.type === 'text') {
+      return chat.lastMessage?.content;
+    } else if (chat.lastMessage?.type === 'image') {
+      return 'Đã gửi ảnh';
+    } else if (chat.lastMessage?.type === 'audio') {
+      return 'Đã gửi tin nhắn thoại';
+    } else if (chat.lastMessage?.type === 'video') {
+      return 'Đã gửi video';
+    } else {
+      return 'Đã gửi một tệp tin';
+    }
+  };
 
   return (
     <button
@@ -58,7 +68,6 @@ const Chat: React.FC<IChatProps> = ({user, type = EChatType.CHAT, chat, onSelect
             chatName: chatInfo?.fullname ?? '',
             chatUri: avatar ?? '',
             online: online,
-            type: type,
           });
       }}
     >
@@ -72,8 +81,8 @@ const Chat: React.FC<IChatProps> = ({user, type = EChatType.CHAT, chat, onSelect
           </span>
         </div>
         <p className="mt-1 line-clamp-2 text-xs leading-5 text-slate-500">
-          <span className="font-semibold text-slate-700">{chat.lastMessage.sender == user._id ? 'Ban: ' : ''}</span>
-          {lastMessage}
+          <span className="font-semibold text-slate-700">{chat.lastMessage.sender == user._id ? 'Bạn: ' : ''}</span>
+          {renderLastMessage()}
         </p>
       </div>
 
