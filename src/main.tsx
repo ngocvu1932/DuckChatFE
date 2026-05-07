@@ -12,6 +12,8 @@ import viLocale from './locales/locale_vi.json';
 import {ToastContainer} from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 import SocketProvider from './providers/socketProvider.tsx';
+import GlobalOverlay from './providers/globalOverlay.tsx';
+import {WebRTCProvider} from './providers/webRTCProvider.tsx';
 
 if (!localStorage.getItem('appConfig')) {
   localStorage.setItem('appConfig', JSON.stringify(appConfig));
@@ -41,10 +43,14 @@ i18next
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
     <Provider store={store}>
-      <SocketProvider>
-        <App />
+      <WebRTCProvider>
+        <SocketProvider>
+          <App />
+          <GlobalOverlay />
+        </SocketProvider>
+
         <ToastContainer />
-      </SocketProvider>
+      </WebRTCProvider>
     </Provider>
   </StrictMode>,
 );

@@ -3,6 +3,7 @@ import userSlice from './slices/userSlice';
 import chatSlice from './slices/chatSlice';
 import messageSlice from './slices/messageSlice';
 import usersSlice from './slices/usersSlice';
+import callSlice from './slices/callSlice';
 
 const store = configureStore({
   reducer: {
@@ -10,6 +11,7 @@ const store = configureStore({
     users: usersSlice.reducer,
     chat: chatSlice.reducer,
     message: messageSlice.reducer,
+    call: callSlice.reducer,
   },
 });
 

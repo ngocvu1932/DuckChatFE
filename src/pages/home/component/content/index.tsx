@@ -31,6 +31,8 @@ import mediaAPIs from '../../../../api/media';
 import EmojiPickerController, {EmojiPickerRef} from './components/emoji-picker';
 import AudioRecorderModal from './components/audio-recorder-modal';
 import ImageUploader from './components/image-uploader';
+import {setCallWith, setInCall} from '../../../../redux/slices/callSlice';
+import {useWebRTCContext} from '../../../../providers/webRTCProvider';
 
 interface IContentProps {
   selectedChat: IChatSelected | undefined;
@@ -74,6 +76,7 @@ const Content: React.FC<IContentProps> = ({selectedChat, isShowDetailChat, setSh
   const pickerRef = useRef<EmojiPickerRef | null>(null);
   const [filesImage, setFilesImage] = useState<File[]>([]);
   const uploaderRef = useRef<any>(null);
+  const webrtc = useWebRTCContext();
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
@@ -379,6 +382,15 @@ const Content: React.FC<IContentProps> = ({selectedChat, isShowDetailChat, setSh
     await loadingMorePromiseRef.current;
   };
 
+  const handleCallVideo = async () => {
+    if (!webrtc) return null;
+
+    await webrtc.callUser(selectedChat?.chatUserId ?? '');
+
+    dispatch(setInCall(true));
+    dispatch(setCallWith(selectedChat?.chatUserId ?? ''));
+  };
+
   if (!selectedChat) {
     return (
       <div className="flex h-full w-full items-center justify-center bg-white">
@@ -402,15 +414,14 @@ const Content: React.FC<IContentProps> = ({selectedChat, isShowDetailChat, setSh
       <div className={`relative flex min-w-0 flex-1 flex-col ${isShowDetailChat ? 'rounded-bl-3xl' : 'rounded-b-3xl'}`}>
         <div className="flex shrink-0 items-center justify-between border-b border-slate-200/80 bg-white/95 px-4 py-3 backdrop-blur sm:px-5">
           <div className="flex min-w-0 items-center gap-3">
-            <button type="button" title="Quay lai" className={`${actionButtonClass} md:hidden`} onClick={onBackToList}>
+            <button type="button" title="Quay lại" className={`${actionButtonClass} md:hidden`} onClick={onBackToList}>
               <FontAwesomeIcon icon={faArrowLeft} />
             </button>
             <Avatar src={selectedChat.chatUri} online={selectedChat.online} size="50" />
             <div className="min-w-0">
               <div className="truncate text-base font-bold text-slate-900 sm:text-lg">{selectedChat.chatName}</div>
               <div className="mt-0.5 flex items-center gap-1.5 text-xs font-medium text-emerald-600">
-                <span className="h-2 w-2 rounded-full bg-emerald-500" />
-                Đang hoạt động
+                {selectedChat.online ? 'Đang hoạt động' : 'Không hoạt động'}
               </div>
             </div>
           </div>
@@ -419,7 +430,14 @@ const Content: React.FC<IContentProps> = ({selectedChat, isShowDetailChat, setSh
             <button type="button" title="Gọi thoại" className={actionButtonClass}>
               <FontAwesomeIcon icon={faPhone} />
             </button>
-            <button type="button" title="Gọi video" className={actionButtonClass}>
+            <button
+              type="button"
+              title="Gọi video"
+              className={actionButtonClass}
+              onClick={() => {
+                handleCallVideo();
+              }}
+            >
               <FontAwesomeIcon icon={faVideo} />
             </button>
             <button
@@ -497,6 +515,17 @@ const Content: React.FC<IContentProps> = ({selectedChat, isShowDetailChat, setSh
               >
                 <FontAwesomeIcon icon={faPlus} />
               </button>
+
+              {/* {incomingCall && (
+                <div>
+                  <p>Incoming call...</p>
+                  <button onClick={acceptCall}>Accept</button>
+                  <button onClick={rejectCall}>Reject</button>
+                </div>
+              )} */}
+
+              {/* <video ref={localVideoRef} autoPlay muted />
+              <video ref={remoteVideoRef} autoPlay /> */}
 
               {isMoreMenuOpen && (
                 <div className="absolute bottom-12 left-0 z-50 w-44 rounded-2xl border border-slate-200 bg-white p-2 shadow-xl shadow-slate-200/80">
