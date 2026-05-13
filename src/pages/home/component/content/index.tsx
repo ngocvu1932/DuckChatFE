@@ -383,12 +383,18 @@ const Content: React.FC<IContentProps> = ({selectedChat, isShowDetailChat, setSh
   };
 
   const handleCallVideo = async () => {
-    if (!webrtc) return null;
+    const targetId = selectedChat?.chatUserId ?? '';
+    if (!webrtc || !targetId || webrtc.callStatus !== 'idle') return;
 
-    await webrtc.callUser(selectedChat?.chatUserId ?? '');
-
-    dispatch(setInCall(true));
-    dispatch(setCallWith(selectedChat?.chatUserId ?? ''));
+    try {
+      await webrtc.callUser(targetId);
+      dispatch(setInCall(true));
+      dispatch(setCallWith(targetId));
+    } catch (error) {
+      console.error(error);
+      dispatch(setInCall(false));
+      dispatch(setCallWith(null));
+    }
   };
 
   if (!selectedChat) {
@@ -433,7 +439,8 @@ const Content: React.FC<IContentProps> = ({selectedChat, isShowDetailChat, setSh
             <button
               type="button"
               title="Gọi video"
-              className={actionButtonClass}
+              disabled={!webrtc || webrtc.callStatus !== 'idle'}
+              className={`${actionButtonClass} disabled:cursor-not-allowed disabled:opacity-50 disabled:hover:translate-y-0 disabled:hover:bg-transparent`}
               onClick={() => {
                 handleCallVideo();
               }}
